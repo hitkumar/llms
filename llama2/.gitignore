@@ -164,3 +164,7 @@ llama-2-*
 tokenizer.model
 tokenizer_checklist*
 sampling_tests.ipynb
+
+# more admin stuff
+LICENSE
+USE_POLICY.md

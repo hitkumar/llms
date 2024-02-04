@@ -66,7 +66,7 @@ def apply_rotary_embeddings(x: torch.Tensor, freqs_complex: torch.Tensor, device
     # (B, seq_len, H, head_dim/2) * (1, seq_len, 1, head_dim/2) -> (B, seq_len, H, head_dim/2)
     x_rotated = x_complex * freqs_complex
     # (B, seq_len, H, head_dim/2) -> (B, seq_len, H, head_dim/2, 2)
-    x_out = x_rotated.view_as_real(x_rotated)
+    x_out = torch.view_as_real(x_rotated)
     # (B, seq_len, H, head_dim)
     x_out = x_out.reshape(*x.shape)
     return x_out.type_as(x).to(device)
@@ -208,7 +208,7 @@ class EncoderBlock(nn.Module):
     def forward(self, x: torch.Tensor, start_pos: int, freqs_complex: torch.Tensor):
         # (B, seq_len, dim) + (B, seq_len, dim) --> (B, seq_len, dim  )
         h = x + self.attention(self.attention_norm(x), start_pos, freqs_complex)
-        out = h + self.feed_forward(self.ffb_norm(h))
+        out = h + self.feed_forward(self.ffn_norm(h))
         return out
 
 class Transformer(nn.Module):
