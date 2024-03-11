@@ -3,3 +3,10 @@
 *.vocab
 *.proto
 *.bpe
+*.env
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+
+# Ignore macOS .DS_Store files
+**/.DS_Store
