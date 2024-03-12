@@ -10,25 +10,36 @@ test_strings = [
     "",
     "?",
     "hello world!!!? (안녕하세요!) lol123 😉", # fun small string
+    "FILE:taylorswift.txt", # File is handled separately in unpack.
 ]
 
+def unpack(text):
+    """ Writing to avoid printing the entire contents of file to console which pytest does by default"""
+    if text.startswith("FILE:"):
+        dirname = os.path.dirname(os.path.abspath(__file__))
+        file = os.path.join(dirname, text[5:])
+        contents = open(file, "r", encoding="utf-8").read()
+        return contents
+    else:
+        return text
 
 # ---------------------------------------------------------------
 
 def train_tokenizer(tokenizer):
     text = open('taylorswift.txt', "r", encoding='utf-8').read()
-    tokenizer.train(text, 512, verbose=True)
+    tokenizer.train(text, 512, verbose=False)
 
 # tests
 @pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer])
 @pytest.mark.parametrize("text", test_strings)
 def test_encode_decode_identity(tokenizer_factory, text):
+    text = unpack(text)
     tokenizer = tokenizer_factory()
     # TODO: Is this step necessary, karpathy@ doesn't use it?
     train_tokenizer(tokenizer)
     ids = tokenizer.encode(text)
-    # TODO: how to make the logging work?
-    print(ids)
+    # how to make the logging work? use -s flag while running pytest
+    # print(ids)
     decoded = tokenizer.decode(ids)
     assert text == decoded
 
