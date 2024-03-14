@@ -32,7 +32,7 @@ class BasicTokenizer(Tokenizer):
         return text
     
     def encode(self, text):
-        """Retums ids from text"""
+        """Returns ids from text"""
         ids = list(text.encode('utf-8'))
         while len(ids) >= 2:
             # find the element in stats that has the smallest associated value in merges
