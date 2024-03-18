@@ -1,4 +1,4 @@
-from src import BasicTokenizer
+from src import BasicTokenizer, RegexTokenizer
 
 import pytest
 import tiktoken
@@ -30,7 +30,7 @@ def train_tokenizer(tokenizer):
     tokenizer.train(text, 512, verbose=False)
 
 # tests
-@pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer])
+@pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer, RegexTokenizer])
 @pytest.mark.parametrize("text", test_strings)
 def test_encode_decode_identity(tokenizer_factory, text):
     text = unpack(text)
@@ -43,7 +43,7 @@ def test_encode_decode_identity(tokenizer_factory, text):
     decoded = tokenizer.decode(ids)
     assert text == decoded
 
-@pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer])
+@pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer, RegexTokenizer])
 def test_basic_tokenizer(tokenizer_factory):
     tokenizer = tokenizer_factory()
     tokenizer.train("How are you doing", 257)
