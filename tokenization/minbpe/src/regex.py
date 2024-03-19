@@ -56,6 +56,7 @@ class RegexTokenizer(Tokenizer):
             
         self.merges = merges # used in encode()
         self.vocab = vocab # used in decode()
+        # print(f"merges dict size is {len(self.merges)}, num merges is {num_merges}")
     
     def decode(self, ids):
         # return python string given list of integers
@@ -69,6 +70,7 @@ class RegexTokenizer(Tokenizer):
                 raise ValueError(f"Invalid token for decoding: {idx}")
         
         s = b"".join(part_bytes)
+        # print(f"raw bytes is {s}")
         return s.decode('utf-8', errors='replace')
     
     def _encode_chunk(self, text_bytes):

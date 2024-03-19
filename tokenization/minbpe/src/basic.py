@@ -28,6 +28,7 @@ class BasicTokenizer(Tokenizer):
     def decode(self, ids):
         """Converts ids to a string"""
         text_bytes = b"".join(self.vocab[idx] for idx in ids)
+        # print(f"txt bytes in decode are {text_bytes}")
         text = text_bytes.decode("utf-8", errors="replace")
         return text
     

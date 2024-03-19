@@ -48,7 +48,7 @@ class Tokenizer:
         self.vocab = self._build_vocab() # int -> bytes
     
     def _build_vocab(self):
-        vocab = {idx: bytes(idx) for idx in range(256)}
+        vocab = {idx: bytes([idx]) for idx in range(256)}
         # the fact that iteration order is same as order in which items are inserted is key here, otherwise we don't have vocab entries for previous merges
         for (p0, p1), idx in self.merges.items():
             vocab[idx] = vocab[p0] + vocab[p1]
