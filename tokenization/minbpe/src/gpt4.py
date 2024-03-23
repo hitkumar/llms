@@ -61,7 +61,7 @@ class GPT4Tokenizer(RegexTokenizer):
         mergeable_ranks = enc._mergeable_ranks
         # recover merges
         self.merges = recover_merges(mergeable_ranks)
-        print(self.merges)
+        # print(self.merges)
         # build vocab object
         self.vocab = {id: bytes([id]) for id in range(256)}
         for (p0, p1), rank in self.merges.items():
@@ -72,7 +72,7 @@ class GPT4Tokenizer(RegexTokenizer):
         self.bytes_shuffle = {i: mergeable_ranks[bytes([i])] for i in range(256)}
         # bytes_shuffle
         self.inverse_bytes_shuffle = {v: k for k, v in self.bytes_shuffle.items()}
-        self.register_special_tokens(GPT4_SPECIAL_TOKENS)
+        # self.register_special_tokens(GPT4_SPECIAL_TOKENS)
     
     def _encode_chunk(self, text_bytes):
         # we need to shuffle as merges uses the shuffled ids
@@ -80,17 +80,37 @@ class GPT4Tokenizer(RegexTokenizer):
         return super()._encode_chunk(text_bytes)
     
     def decode(self, ids):
-        # TODO: how are special characters handled here, can we add this in regex tokenizer also.
+        # part_bytes = []
+        # for idx in ids:
+        #     if idx in self.vocab:
+        #         part_bytes.append(self.vocab[idx])
+        #     elif idx in self.inverse_special_tokens:  # understand this part thoroughly
+        #         print(f"In special tokens decode: {idx}")
+        #         part_bytes.append(self.inverse_special_tokens[idx].encode("utf-8"))
+        #     else:
+        #         raise ValueError(f"Invalid token for decoding: {idx}")
+        
+        # text_bytes = b"".join(part_bytes)
+        # print(list(text_bytes))
+        # text_bytes = bytes(self.inverse_bytes_shuffle[i] for i in text_bytes)
+
+        # # print(f"raw bytes is {s}")
+        # return text_bytes.decode('utf-8', errors='replace')
+    
+        # Karpathy's implementation (doesn't work for special tokens)
+    
+        text_bytes = b"".join(self.vocab[idx] for idx in ids)
+        text_bytes = bytes(self.inverse_bytes_shuffle[i] for i in text_bytes)
+        return text_bytes.decode('utf-8', errors='replace')
+
         # test if we can inverse shuffle first and then decode, seems simpler as we convert to bytes once then.
         """ we can't do inverse shuffle first and then decode as inverse shuffle only contains ids for individual tokens, 
         so we first need to find ids for individual tokens from vocab, then inverse byte shuffle and then decode"""
-        text_bytes = b"".join(self.vocab[idx] for idx in ids)
-        text_bytes = bytes(self.inverse_bytes_shuffle[i] for i in text_bytes)
+
+        # return super().decode(list(text_bytes))
         # text_ids_diff = [self.inverse_bytes_shuffle[id] for id in ids]
         # text_bytes_diff = b"".join(self.vocab[idx] for idx in text_ids_diff)
         # print(f"correct text bytes is {text_bytes}, diff bytes is {text_bytes_diff}")
-        return text_bytes.decode('utf-8', errors='replace')
-        
         # return text_bytes.decode('utf-8', errors='replace')
     
     # pretrained tokenizer, can't be implemented.

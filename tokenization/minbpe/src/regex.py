@@ -125,6 +125,7 @@ class RegexTokenizer(Tokenizer):
         ids = []
         for chunk in special_chunks:
             if chunk in special:
+                # print(f"special chunk: {chunk}, {special[chunk]}")
                 ids.append(special[chunk])
             else:
                 ids.extend(self._encode_ordinary(chunk))

@@ -1,4 +1,4 @@
-from src import BasicTokenizer, RegexTokenizer
+from src import BasicTokenizer, RegexTokenizer, GPT4Tokenizer
 
 import pytest
 import tiktoken
@@ -38,20 +38,29 @@ The ancestors of llamas are thought to have originated from the Great Plains of 
 <|fim_prefix|>In Aymara mythology, llamas are important beings. The Heavenly Llama is said to drink water from the ocean and urinates as it rains.[6] According to Aymara eschatology,<|fim_suffix|> where they come from at the end of time.[6]<|fim_middle|> llamas will return to the water springs and ponds<|endofprompt|>
 """.strip()
 
+specials_string = """
+<|endoftext|>Hello world this is one document
+<|endoftext|>And this is another document
+<|endoftext|><|fim_prefix|>And this one has<|fim_suffix|> tokens.<|fim_middle|> FIM
+<|endoftext|>Last document!!! 👋<|endofprompt|>
+""".strip()
+
 # ---------------------------------------------------------------
+# tests below
 
 def train_tokenizer(tokenizer):
     text = open('taylorswift.txt', "r", encoding='utf-8').read()
     tokenizer.train(text, 512, verbose=False)
 
 # tests
-@pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer, RegexTokenizer])
+@pytest.mark.parametrize("tokenizer_factory", [BasicTokenizer, RegexTokenizer, GPT4Tokenizer])
 @pytest.mark.parametrize("text", test_strings)
 def test_encode_decode_identity(tokenizer_factory, text):
     text = unpack(text)
     tokenizer = tokenizer_factory()
+    if not isinstance(tokenizer, GPT4Tokenizer):
     # TODO: Is this step necessary, karpathy@ doesn't use it?
-    train_tokenizer(tokenizer)
+        train_tokenizer(tokenizer)
     ids = tokenizer.encode(text)
     # how to make the logging work? use -s flag while running pytest
     # print(ids)
@@ -130,6 +139,39 @@ def test_save_load_regex_tokenizer(special_tokens):
     # delete the temp files
     for file in ["test_tokenizer_tmp.vocab"]:
         os.remove(file)
+
+@pytest.mark.parametrize("text", test_strings)
+def test_gpt4_tiktoken_equality(text):
+    text = unpack(text)
+    tokenizer = GPT4Tokenizer()
+    enc = tiktoken.get_encoding('cl100k_base')
+    tiktoken_ids = enc.encode(text)
+    gpt4_ids = tokenizer.encode(text)
+    assert tiktoken_ids == gpt4_ids
+
+# test regex tokenizer and gpt-4 handling of special strings
+def test_regex_tokenizer_special_tokens():
+    tokenizer = RegexTokenizer()
+    tokenizer.register_special_tokens(special_tokens)
+    regex_tokenizer_ids = tokenizer.encode(specials_string, allowed_special="all")
+
+    # print(f"regex tokenizer ids is {regex_tokenizer_ids}")
+    assert tokenizer.decode(regex_tokenizer_ids) == specials_string
+
+
+def test_gpt4_tiktoken_special_tokens():
+    tokenizer = GPT4Tokenizer()
+    tokenizer.register_special_tokens(special_tokens)
+    enc = tiktoken.get_encoding('cl100k_base')
+    tiktoken_ids = enc.encode(specials_string, allowed_special="all")
+    gpt4_tokenizer_ids = tokenizer.encode(specials_string, allowed_special="all")
+    assert tiktoken_ids == gpt4_tokenizer_ids
+
+    # TODO: Decoding for gpt4 tokenizer is not working when special tokens are involved.
+    # print(f"tiktoken ids is {tiktoken_ids}")
+    # print(f"regex tokenizer ids is {gpt4_tokenizer_ids}")
+    # print(enc.decode(tiktoken_ids) == specials_string)
+    # print(tokenizer.decode(gpt4_tokenizer_ids))
 
 if __name__=="__main__":
     pytest.main()
