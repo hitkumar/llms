@@ -1,4 +1,5 @@
-from src import BasicTokenizer, RegexTokenizer, GPT4Tokenizer
+from src import BasicTokenizer, RegexTokenizer
+from src.gpt4 import GPT4Tokenizer
 
 import pytest
 import tiktoken
