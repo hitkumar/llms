@@ -4,3 +4,5 @@ gpt2/
 downloaded_models/
 sms_spam_collection/
 **/__pycache__
+*.pth
+*.pdf
