@@ -40,7 +40,7 @@ class SelfAttention(nn.Module):
 
         # (B, n_heads, s_len, s_len) * (B, n_heads, s_len, d_head) -> (B, n_heads, s_len, d_head)
         self_attention_out = weight @ v
-        self_attention_out = self_attention_out.transpose(1, 2)
+        self_attention_out = self_attention_out.transpose(1, 2).contiguous()
         self_attention_out = self_attention_out.view(input_shape)
         self_attention_out = self.out_proj(self_attention_out)
 

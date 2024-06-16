@@ -68,7 +68,7 @@ class DDPMSampler:
         predicted_original_sample_coeff = ((alpha_prod_t_prev ** 0.5) * current_beta_t) / beta_prod_t
         current_sample_coeff = (current_alpha_t ** (0.5) * beta_prod_t_prev) / beta_prod_t
 
-        prev_sample_mean = predicted_original_sample_coeff * pred_original_sample + current_sample_coeff * latents
+        pred_prev_sample = predicted_original_sample_coeff * pred_original_sample + current_sample_coeff * latents
 
         # variance
         variance = 0
@@ -76,7 +76,7 @@ class DDPMSampler:
             noise = torch.randn(model_output.shape, generator=self.generator, device=model_output.device, dtype=model_output.dtype)
             variance = (1 - alpha_prod_t_prev) / (1 - alpha_prod_t) * current_beta_t
             variance = torch.clamp(variance, min=1e-20)
-            variance = variance ** 0.5
+            variance = (variance ** 0.5) * noise
         
-        pred_prev_sample = pred_prev_sample + variance * noise
+        pred_prev_sample = pred_prev_sample + variance
         return pred_prev_sample

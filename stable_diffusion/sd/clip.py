@@ -28,10 +28,10 @@ class CLIPLayer(nn.Module):
     
     def forward(self, x):
         x = x + self.attention(self.layernorm_1(x), causal_mask=True)
+        residue = x
         x = self.linear_1(self.layernorm_2(x))
         x = x * torch.sigmoid(1.702 * x) # QuickGELU activation function
-        x = x + self.linear_2(x)
-        return x
+        return residue + self.linear_2(x)
 
 class CLIP(nn.Module):
     '''

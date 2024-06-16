@@ -2,7 +2,6 @@ from clip import CLIP
 from encoder import VAE_Encoder
 from decoder import VAE_Decoder
 from diffusion import Diffusion
-import torch
 import model_converter
 
 def load_stable_diffusion_model(ckpt_path, device='cpu'):
@@ -24,5 +23,5 @@ def load_stable_diffusion_model(ckpt_path, device='cpu'):
         'clip': clip,
         'encoder': encoder,
         'decoder': decoder,
-        'encoder': encoder,
+        'diffusion': diffusion,
     }

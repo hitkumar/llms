@@ -82,7 +82,7 @@ class UNET_AttentionBlock(nn.Module):
 
         # (B, F, H, W)
         image = self.groupnorm(image)
-        image = self.conv_input
+        image = self.conv_input(image)
 
         n, c, h, w = image.shape
 
@@ -111,7 +111,8 @@ class UNET_AttentionBlock(nn.Module):
 
         image += residue_tmp
         # (B, F, H, W)
-        image = image.transpose(-1, -2).view(image.shape)
+        image = image.transpose(-1, -2).contiguous().view((n, c, h, w))
+        # print(f"image shape is {image.shape}")
 
         # residual connection -> (B, F, H, W)
         return residue + self.conv_output(image)
@@ -132,7 +133,7 @@ class SwitchSequential(nn.Sequential):
     def forward(self, image, context, time):
         for layer in self:
             if isinstance(layer, UNET_AttentionBlock):
-                image = layer(layer, context)
+                image = layer(image, context)
             elif isinstance(layer, UNET_ResidualBlock):
                 image = layer(image, time)
             else:
