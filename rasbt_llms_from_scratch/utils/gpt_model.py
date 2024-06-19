@@ -16,6 +16,7 @@ class LayerNorm(nn.Module):
         return self.scale * norm_x + self.shift
 
 class GELU(nn.Module):
+    # This is nn.GELU(approximation='tanh') as explained by Karpathy
     def __init__(self):
         super().__init__()
     
@@ -273,4 +274,5 @@ def load_weights_into_gpt(gpt: GPTModel, params):
         # Final norm and output layer weight
         gpt.final_ln.scale = assign(gpt.final_ln.scale, params['g'])
         gpt.final_ln.shift = assign(gpt.final_ln.shift, params['b'])
+        # This is what Karpathy was saying, weights are shared between wte and final out head
         gpt.out_head.weight = assign(gpt.out_head.weight, params['wte'])
