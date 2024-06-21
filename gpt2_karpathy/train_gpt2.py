@@ -24,9 +24,9 @@ class CausalSelfAttention(nn.Module):
         self.n_embd = config.n_embd
         self.head_dim = config.n_embd //  config.n_head
 
-        # mask following OpenAI / HF naming
+        #  mask following OpenAI / HF naming
         self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size)).view(1, 1, config.block_size, config.block_size))
-    
+
     def forward(self, x):
         # x is of shape (B, seq_len, emb_dim)
         B, T, C = x.size()
@@ -38,7 +38,7 @@ class CausalSelfAttention(nn.Module):
         q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
         k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
         v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
-        
+
         # (B, n_head, seq_len, head_dim) * (B, n_head, head_dim, seq_len) -> (B, n_head, seq_len, seq_len)
         att = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
         att.masked_fill_(self.bias[:,:,:T, :T] == 0, -torch.inf)
@@ -68,13 +68,13 @@ class MLP(nn.Module):
 class Block(nn.Module):
     def __init__(self, config):
         super().__init__()
-        
+
         self.ln_1 = nn.LayerNorm(config.n_embd)
         # (B, seq_len, emb_dim) -> (B, seq_len, 3 * emb_dim) -> (B, seq_len, emb_dim)
         self.attn = CausalSelfAttention(config)
         self.mlp = MLP(config)
         self.ln_2 = nn.LayerNorm(config.n_embd)
-    
+
     def forward(self, x):
         x = x + self.attn(self.ln_1(x))
         x = x + self.mlp(self.ln_2(x))
@@ -84,7 +84,7 @@ class Block(nn.Module):
 class GPT(nn.Module):
     def __init__(self, config: GPTConfig):
         super().__init__()
-        
+
         self.config = config
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Embedding(config.vocab_size, config.n_embd),
@@ -93,7 +93,7 @@ class GPT(nn.Module):
             ln_f = nn.LayerNorm(config.n_embd),
         ))
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-    
+
     @classmethod
     def from_pretrained(cls, model_type):
         """Loads pre-trained gpt-2 weights from HF"""
@@ -135,9 +135,9 @@ class GPT(nn.Module):
                 assert sd_hf[k].shape == sd[k].shape
                 with torch.no_grad():
                     sd[k].copy_(sd_hf[k])
-        
+
         return model
-    
+
     def forward(self, x):
         # x is of shape (B, seq_len)
         B, T = x.shape
@@ -147,10 +147,10 @@ class GPT(nn.Module):
         embds = self.transformer.wpe(pos) + self.transformer.wte(x)
         for block in self.transformer.h:
             embds = block(embds)
-        
+
         embds = self.transformer.ln_f(embds)
         # return the logits shape is (B, T, vocab_size)
         return self.lm_head(embds)
-        
+
 model = GPT.from_pretrained('gpt2')
 print('loaded successfully')
