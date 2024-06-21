@@ -137,7 +137,20 @@ class GPT(nn.Module):
                     sd[k].copy_(sd_hf[k])
         
         return model
-
-
+    
+    def forward(self, x):
+        # x is of shape (B, seq_len)
+        B, T = x.shape
+        assert T <= self.config.block_size, f'Cannot forward sequence of length {T}, block size is only {self.config.block_size}'
+        pos = torch.arange(0, T, dtype=torch.long, device=x.device) # shape (T)
+        # (B, T, emb_dim)
+        embds = self.transformer.wpe(pos) + self.transformer.wte(x)
+        for block in self.transformer.h:
+            embds = block(embds)
+        
+        embds = self.transformer.ln_f(embds)
+        # return the logits shape is (B, T, vocab_size)
+        return self.lm_head(embds)
+        
 model = GPT.from_pretrained('gpt2')
 print('loaded successfully')
