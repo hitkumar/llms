@@ -138,7 +138,7 @@ class GPT(nn.Module):
 
         return model
 
-    def forward(self, x):
+    def forward(self, x, targets=None):
         # x is of shape (B, seq_len)
         B, T = x.shape
         assert T <= self.config.block_size, f'Cannot forward sequence of length {T}, block size is only {self.config.block_size}'
@@ -150,7 +150,12 @@ class GPT(nn.Module):
 
         embds = self.transformer.ln_f(embds)
         # return the logits shape is (B, T, vocab_size)
-        return self.lm_head(embds)
+        logits = self.lm_head(embds)
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, self.config.vocab_size), targets.view(-1))
+        
+        return logits, loss
 
 
 # autodetect the device
@@ -180,8 +185,10 @@ B, T = 4, 32
 buf = torch.tensor(tokens[:B*T + 1])
 x = buf[:-1].view(B, T)
 y = buf[1:].view(B, T)
-logits = model(x)
-print(logits.shape)
+logits, loss = model(x, y)
+print(logits.shape, loss.shape)
+print(f"loss is {loss.item()}")
+
 import sys; sys.exit(0)
 
 model.eval()
