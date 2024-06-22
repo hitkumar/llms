@@ -166,7 +166,7 @@ elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
     device = 'mps'
 print(f'using device: {device}')
 
-device = 'cpu'
+# device = 'cpu'
 
 # model = GPT.from_pretrained('gpt2')
 # print('loaded successfully')
@@ -183,11 +183,19 @@ text = text[:1000]
 tokens = enc.encode(text)
 B, T = 4, 32
 buf = torch.tensor(tokens[:B*T + 1])
+buf = buf.to(device)
 x = buf[:-1].view(B, T)
 y = buf[1:].view(B, T)
-logits, loss = model(x, y)
-print(logits.shape, loss.shape)
-print(f"loss is {loss.item()}")
+
+# optimizer loop
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+for i in range(50):
+    optimizer.zero_grad()
+    
+    logits, loss = model(x, y)
+    loss.backward()
+    optimizer.step()
+    print(f"loss at iter {i}: {loss.item()}")
 
 import sys; sys.exit(0)
 
