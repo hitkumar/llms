@@ -154,3 +154,43 @@ class GPT(nn.Module):
 
 model = GPT.from_pretrained('gpt2')
 print('loaded successfully')
+# model = GPT(GPTConfig())
+
+# Generate from the model
+
+num_return_sequences = 5
+max_length = 30
+
+model.eval()
+model.to('cuda')
+
+# tokenize the text
+import tiktoken
+enc = tiktoken.get_encoding('gpt2')
+tokens = enc.encode("Hello, I'm a language model,")
+tokens = torch.tensor(tokens, dtype=torch.long)
+# print(tokens.shape)
+tokens = tokens.unsqueeze(0).repeat(num_return_sequences, 1)
+x = tokens.to('cuda')
+
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+
+# (B, T)
+while x.size(1) < max_length:
+    with torch.no_grad():
+        # (B, T, vocab_size)
+        logits = model(x)
+        # (B, vocab_size)
+        logits = logits[:, -1, :]
+        probs = F.softmax(logits, dim=-1)
+
+        # (B, 50)
+        topk_probs, topk_indices = torch.topk(probs, 50, dim=-1)
+        new_id = torch.multinomial(topk_probs, num_samples=1) # (B, 1)
+        new_id = torch.gather(topk_indices, -1, new_id) # (B, 1)
+        # (B, T + 1)
+        x = torch.cat((x, new_id), dim=-1)
+
+for i in range(num_return_sequences):
+    print(enc.decode(x[i].tolist()))
