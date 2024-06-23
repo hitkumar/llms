@@ -197,7 +197,7 @@ if torch.cuda.is_available():
 
 # model = GPT.from_pretrained('gpt2')
 # print('loaded successfully')
-model = GPT(GPTConfig())
+model = GPT(GPTConfig(vocab_size=50304)) # power of 2 is better for the GPUs
 model.to(device)
 model = torch.compile(model)
 
@@ -237,6 +237,7 @@ dataloader = DataLoaderLite(B=16, T=1024)
 # time taken 1045 flp32 -> 375 with TF32 -> 328 with TF32 and bf16
 # 154 with torch compile on top, 107K tokens per second.
 # 110 with flash attention, 149K tokens per second.
+# 105 with vocab size pow of 2, 154K tokens per second.
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
