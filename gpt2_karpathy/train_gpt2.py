@@ -241,7 +241,7 @@ dataloader = DataLoaderLite(B=16, T=1024)
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-9)
 num_iters = 10
 for i in range(num_iters):
     t0 = time.time()
@@ -252,12 +252,14 @@ for i in range(num_iters):
     with torch.autocast(device_type=device, dtype=torch.bfloat16):
         logits, loss = model(x, y)
     loss.backward()
+    # clip gradients
+    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
     torch.cuda.synchronize() # wait for the gpu to finish
     t1 = time.time()
     dt = (t1 - t0) * 1e3 # time difference in ms
     tokens_per_sec = dataloader.B * dataloader.T / (t1 - t0)
-    print(f"loss at iter {i}: {loss.item()}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}")
+    print(f"loss at iter {i}: {loss.item()}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}")
 
 import sys; sys.exit(0)
 
