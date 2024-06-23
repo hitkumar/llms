@@ -3,7 +3,6 @@ import time
 import math
 from model import GPT, GPTConfig
 from dataloader import DataLoaderLite
-import inspect
 
 # autodetect the device
 device = 'cpu'
@@ -44,14 +43,13 @@ def get_lr(it):
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
     return min_lr + coeff * (max_lr - min_lr)
 
-# define the dataloader
-dataloader = DataLoaderLite(B=16, T=1024)
-# TF 32 datatype which changes the precision of float32 numbers internally.
 
+# TF 32 datatype which changes the precision of float32 numbers internally.
 # time taken 1045 flp32 -> 375 with TF32 -> 328 with TF32 and bf16
 # 154 with torch compile on top, 107K tokens per second.
 # 110 with flash attention, 149K tokens per second.
 # 105 with vocab size pow of 2, 154K tokens per second.
+# 159K tokens per second with gradient accumulation
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
@@ -60,16 +58,34 @@ optimizer = model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, dev
 # print(optimizer.param_groups)
 
 
+total_batch_size = 2**19
+# microbatch size
+B = 16
+T = 1024
+
+# define the dataloader
+dataloader = DataLoaderLite(B=B, T=T)
+assert total_batch_size % (B * T) == 0, "total batch size must be divisible by B*T"
+grad_accum_steps = total_batch_size // (B * T)
+print(f'total batch size: {total_batch_size}, grad accum steps: {grad_accum_steps}, 1 epoch steps is {len(dataloader.tokens) / (B * T * grad_accum_steps)}")')
+
 # num_iters = 10
-for i in range(55):
+for i in range(3):
     t0 = time.time()
     optimizer.zero_grad()
-    x, y = dataloader.next_batch()
-    x, y = x.to(device), y.to(device)
-    
-    with torch.autocast(device_type=device, dtype=torch.bfloat16):
-        logits, loss = model(x, y)
-    loss.backward()
+
+    loss_accum = 0.0
+    for microstep in range(grad_accum_steps):
+        x, y = dataloader.next_batch()
+        x, y = x.to(device), y.to(device)
+        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            logits, loss = model(x, y)
+
+        # since we want mean divide by grad_accum_steps 1 / micro_batch_size becomes 1 / grad_accum_steps * micro_batch_size
+        loss = loss / grad_accum_steps   
+        loss_accum += loss.detach()
+        loss.backward()
+
     # clip gradients
     norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     # set the lr for this iteration
@@ -80,8 +96,9 @@ for i in range(55):
     torch.cuda.synchronize() # wait for the gpu to finish
     t1 = time.time()
     dt = (t1 - t0) * 1e3 # time difference in ms
-    tokens_per_sec = dataloader.B * dataloader.T / (t1 - t0)
-    print(f"loss at iter {i}: {loss.item()}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}| lr: {lr:.4e}")
+    tokens_processed = dataloader.B * dataloader.T * grad_accum_steps
+    tokens_per_sec = tokens_processed / (t1 - t0)
+    print(f"loss at iter {i}: {loss_accum.item()}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}| lr: {lr:.4e}")
 
 # import sys; sys.exit(0)
 
