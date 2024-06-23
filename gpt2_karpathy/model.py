@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import inspect
 
 
 @dataclass
@@ -179,3 +180,25 @@ class GPT(nn.Module):
             loss = F.cross_entropy(logits.view(-1, self.config.vocab_size), targets.view(-1))
         
         return logits, loss
+    
+    def configure_optimizers(self, weight_decay, learning_rate, device):
+        # Find all parameters that require gradients
+        params_dict = {pn: p for pn, p in self.named_parameters()}
+        params_dict = {pn: p for pn, p in params_dict.items() if p.requires_grad}
+
+        # Now divide params in 2 groups: ones that need weight decay and other that don't
+        decay_params = [p for n, p in params_dict.items() if p.dim() >= 2]
+        nondecay_params = [p for n, p in params_dict.items() if p.dim() < 2]
+        optim_groups = [
+            {'params': decay_params, 'weight_decay': weight_decay},
+            {'params': nondecay_params, 'weight_decay': 0.0}
+        ]
+
+        num_decay_params = sum(p.numel() for p in decay_params)
+        num_nondecay_params = sum(p.numel() for p in nondecay_params)
+
+        fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
+        use_fused = fused_available and 'cuda' in device
+        print(f'num_decay_params: {num_decay_params}, num_nondecay_params: {num_nondecay_params}, use_fused: {use_fused}')
+        optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused)
+        return optimizer    

@@ -3,6 +3,7 @@ import time
 import math
 from model import GPT, GPTConfig
 from dataloader import DataLoaderLite
+import inspect
 
 # autodetect the device
 device = 'cpu'
@@ -54,7 +55,8 @@ dataloader = DataLoaderLite(B=16, T=1024)
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-9)
+# optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-9)
+optimizer = model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device=device)
 # print(optimizer.param_groups)
 
 
