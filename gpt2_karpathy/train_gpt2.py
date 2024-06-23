@@ -230,6 +230,8 @@ class DataLoaderLite:
 
 dataloader = DataLoaderLite(B=16, T=1024)
 # TF 32 datatype which changes the precision of float32 numbers internally.
+
+# time taken 1045 flp32 -> 375 with TF32 -> 328 with TF32 and bf16
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
@@ -241,7 +243,8 @@ for i in range(num_iters):
     x, y = dataloader.next_batch()
     x, y = x.to(device), y.to(device)
     
-    logits, loss = model(x, y)
+    with torch.autocast(device_type=device, dtype=torch.bfloat16):
+        logits, loss = model(x, y)
     loss.backward()
     optimizer.step()
     torch.cuda.synchronize() # wait for the gpu to finish
