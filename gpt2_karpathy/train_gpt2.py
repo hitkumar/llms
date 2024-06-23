@@ -2,6 +2,7 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 @dataclass
 class GPTConfig:
@@ -227,11 +228,15 @@ class DataLoaderLite:
         
         return x, y
 
-dataloader = DataLoaderLite(4, 32)
+dataloader = DataLoaderLite(B=16, T=1024)
+# TF 32 datatype which changes the precision of float32 numbers internally.
+torch.set_float32_matmul_precision('high')
 
 # optimizer loop
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
-for i in range(50):
+num_iters = 10
+for i in range(num_iters):
+    t0 = time.time()
     optimizer.zero_grad()
     x, y = dataloader.next_batch()
     x, y = x.to(device), y.to(device)
@@ -239,7 +244,11 @@ for i in range(50):
     logits, loss = model(x, y)
     loss.backward()
     optimizer.step()
-    print(f"loss at iter {i}: {loss.item()}")
+    torch.cuda.synchronize() # wait for the gpu to finish
+    t1 = time.time()
+    dt = (t1 - t0) * 1e3 # time difference in ms
+    tokens_per_sec = dataloader.B * dataloader.T / (t1 - t0)
+    print(f"loss at iter {i}: {loss.item()}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}")
 
 import sys; sys.exit(0)
 
