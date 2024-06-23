@@ -197,6 +197,7 @@ if torch.cuda.is_available():
 # print('loaded successfully')
 model = GPT(GPTConfig())
 model.to(device)
+model = torch.compile(model)
 
 # define the dataloader
 
@@ -232,6 +233,7 @@ dataloader = DataLoaderLite(B=16, T=1024)
 # TF 32 datatype which changes the precision of float32 numbers internally.
 
 # time taken 1045 flp32 -> 375 with TF32 -> 328 with TF32 and bf16
+# 154 with torch compile on top, 107K tokens per second.
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
