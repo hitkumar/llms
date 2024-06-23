@@ -42,13 +42,15 @@ class CausalSelfAttention(nn.Module):
         v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
 
         # (B, n_head, seq_len, head_dim) * (B, n_head, head_dim, seq_len) -> (B, n_head, seq_len, seq_len)
-        att = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
-        att.masked_fill_(self.bias[:,:,:T, :T] == 0, -torch.inf)
-        # (B, n_head, seq_len, seq_len)
-        att = F.softmax(att, dim=-1)
+        # att = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
+        # att.masked_fill_(self.bias[:,:,:T, :T] == 0, -torch.inf)
+        # # (B, n_head, seq_len, seq_len)
+        # att = F.softmax(att, dim=-1)
 
-        # (B, n_head, seq_len, head_dim)
-        out = att @ v
+        # # (B, n_head, seq_len, head_dim)
+        # out = att @ v
+
+        out = F.scaled_dot_product_attention(q, k, v, is_causal=True) # flash attention
         out = out.transpose(1, 2).contiguous().view(B, T, C)
         # output is of shape (B, seq_len, emb_dim) like input
         return self.c_proj(out)
@@ -234,6 +236,7 @@ dataloader = DataLoaderLite(B=16, T=1024)
 
 # time taken 1045 flp32 -> 375 with TF32 -> 328 with TF32 and bf16
 # 154 with torch compile on top, 107K tokens per second.
+# 110 with flash attention, 149K tokens per second.
 torch.set_float32_matmul_precision('high')
 
 # optimizer loop
