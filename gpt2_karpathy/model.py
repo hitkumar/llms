@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import inspect
-
+import config
 
 @dataclass
 class GPTConfig:
@@ -199,6 +199,7 @@ class GPT(nn.Module):
 
         fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
         use_fused = fused_available and 'cuda' in device
-        print(f'num_decay_params: {num_decay_params}, num_nondecay_params: {num_nondecay_params}, use_fused: {use_fused}')
+        if config.master_process:
+            print(f'num_decay_params: {num_decay_params}, num_nondecay_params: {num_nondecay_params}, use_fused: {use_fused}')
         optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused)
         return optimizer    
