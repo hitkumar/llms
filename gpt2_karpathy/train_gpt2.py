@@ -70,8 +70,11 @@ raw_model = model.module if is_dpp else model # get the raw model from dpp conta
 
 max_lr = 6e-4
 min_lr = max_lr * 0.1
+
+# gpt-3 warmup schedule where we warmup for 375M tokens, in each step we train over 2**19 tokens, this is 375M / 2^19
 warmup_steps = 715
-max_steps = 104
+# 1 epoch over the 10B token dataset, each step we train over 2**19 tokens
+max_steps = 19073
 
 
 def get_lr(it):
@@ -112,13 +115,16 @@ for i in range(max_steps):
         with torch.no_grad():
             val_loss_accum = 0.0
             val_loss_steps = 20
+            loss_total = 0.0
             for _ in range(val_loss_steps):
                 x, y = val_dataloader.next_batch()
                 x, y = x.to(device), y.to(device)
                 with torch.autocast(device_type=device, dtype=torch.bfloat16):
                     logits, loss = model(x, y)
-                loss = loss / val_loss_steps
-                val_loss_accum += loss.detach()
+                loss_total += loss.detach()
+
+            loss_total /= val_loss_steps
+            val_loss_accum = loss_total.detach()
         
         if is_dpp:
             dist.all_reduce(val_loss_accum, op=dist.ReduceOp.AVG)
