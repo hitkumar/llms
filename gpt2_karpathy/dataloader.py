@@ -1,4 +1,3 @@
-import tiktoken
 import torch
 import config
 import numpy as np
@@ -28,7 +27,7 @@ class DataLoaderLite:
         root_dir = "edu_fineweb10TB"
         shards = os.listdir(root_dir)
         shards = sorted(shards)
-        shards = [os.path.join(root_dir, s) for s in shards]
+        shards = [os.path.join(root_dir, s) for s in shards if split in s]
         self.shards = shards
         assert len(shards) > 0, f"no shards found for {split}"
 
@@ -36,11 +35,14 @@ class DataLoaderLite:
             # print(f"loaded {len(tokens)} in dataloader, num_batches in 1 epoch is {len(tokens) // (B * T * self.num_processes)}")
             print(f"found {len(shards)} for split {split}")
 
+        self.reset()
+    
+    def reset(self):
         # B*T tokens are reserved for each process
         self.current_shard = 0
         self.tokens = load_tokens(self.shards[self.current_shard])
         self.current_position = self.B * self.T * self.process_rank
-    
+
     def next_batch(self):
         B, T = self.B, self.T
         buf = self.tokens[self.current_position: self.current_position + B * T + 1]

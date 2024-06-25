@@ -51,11 +51,13 @@ B = 32
 T = 1024
 
 # define the dataloader
-dataloader = DataLoaderLite(B=B, T=T, process_rank=dpp_rank, num_processes=dpp_world_size, split='train')
+train_dataloader = DataLoaderLite(B=B, T=T, process_rank=dpp_rank, num_processes=dpp_world_size, split='train')
+val_dataloader = DataLoaderLite(B=B, T=T, process_rank=dpp_rank, num_processes=dpp_world_size, split='val')
+
 assert total_batch_size % (B * T * dpp_world_size) == 0, "total batch size must be divisible by B * T * dpp_world_size"
 grad_accum_steps = total_batch_size // (B * T * dpp_world_size)
 if config.master_process:
-    print(f'total batch size: {total_batch_size}, grad accum steps: {grad_accum_steps}, 1 epoch steps is {len(dataloader.tokens) / (B * T * grad_accum_steps * dpp_world_size)}')
+    print(f'total batch size: {total_batch_size}, grad accum steps: {grad_accum_steps}, 1 epoch steps is {len(train_dataloader.tokens) / (B * T * grad_accum_steps * dpp_world_size)}')
 
 # model = GPT.from_pretrained('gpt2')
 
@@ -69,7 +71,7 @@ raw_model = model.module if is_dpp else model # get the raw model from dpp conta
 max_lr = 6e-4
 min_lr = max_lr * 0.1
 warmup_steps = 715
-max_steps = 1000
+max_steps = 104
 
 
 def get_lr(it):
@@ -102,11 +104,33 @@ optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4,
 # num_iters = 10
 for i in range(max_steps):
     t0 = time.time()
-    optimizer.zero_grad()
 
+    # Get stats on validation set once in a while
+    if i % 100 == 0:
+        model.eval()
+        val_dataloader.reset()
+        with torch.no_grad():
+            val_loss_accum = 0.0
+            val_loss_steps = 20
+            for _ in range(val_loss_steps):
+                x, y = val_dataloader.next_batch()
+                x, y = x.to(device), y.to(device)
+                with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                    logits, loss = model(x, y)
+                loss = loss / val_loss_steps
+                val_loss_accum += loss.detach()
+        
+        if is_dpp:
+            dist.all_reduce(val_loss_accum, op=dist.ReduceOp.AVG)
+        
+        if config.master_process:
+            print(f"val loss at iter {i}: {val_loss_accum.item():.4f}")
+
+    model.train()
+    optimizer.zero_grad()
     loss_accum = 0.0
     for microstep in range(grad_accum_steps):
-        x, y = dataloader.next_batch()
+        x, y = train_dataloader.next_batch()
         x, y = x.to(device), y.to(device)
         with torch.autocast(device_type=device, dtype=torch.bfloat16):
             logits, loss = model(x, y)
@@ -131,7 +155,7 @@ for i in range(max_steps):
     torch.cuda.synchronize() # wait for the gpu to finish
     t1 = time.time()
     dt = (t1 - t0) * 1e3 # time difference in ms
-    tokens_processed = dataloader.B * dataloader.T * grad_accum_steps * dpp_world_size
+    tokens_processed = train_dataloader.B * train_dataloader.T * grad_accum_steps * dpp_world_size
     tokens_per_sec = tokens_processed / (t1 - t0)
     if config.master_process:
         print(f"loss at iter {i: 5d}: {loss_accum.item():.6f}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}| lr: {lr:.4e}")
