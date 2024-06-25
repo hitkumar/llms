@@ -47,11 +47,11 @@ if torch.cuda.is_available():
 
 total_batch_size = 2**19
 # microbatch size
-B = 16
+B = 32
 T = 1024
 
 # define the dataloader
-dataloader = DataLoaderLite(B=B, T=T, process_rank=dpp_rank, num_processes=dpp_world_size)
+dataloader = DataLoaderLite(B=B, T=T, process_rank=dpp_rank, num_processes=dpp_world_size, split='train')
 assert total_batch_size % (B * T * dpp_world_size) == 0, "total batch size must be divisible by B * T * dpp_world_size"
 grad_accum_steps = total_batch_size // (B * T * dpp_world_size)
 if config.master_process:
@@ -68,8 +68,8 @@ raw_model = model.module if is_dpp else model # get the raw model from dpp conta
 
 max_lr = 6e-4
 min_lr = max_lr * 0.1
-warmup_steps = 10
-max_steps = 50
+warmup_steps = 715
+max_steps = 1000
 
 
 def get_lr(it):
@@ -100,7 +100,7 @@ optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4,
 # print(optimizer.param_groups)
 
 # num_iters = 10
-for i in range(5):
+for i in range(max_steps):
     t0 = time.time()
     optimizer.zero_grad()
 
@@ -134,7 +134,7 @@ for i in range(5):
     tokens_processed = dataloader.B * dataloader.T * grad_accum_steps * dpp_world_size
     tokens_per_sec = tokens_processed / (t1 - t0)
     if config.master_process:
-        print(f"loss at iter {i}: {loss_accum.item()}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}| lr: {lr:.4e}")
+        print(f"loss at iter {i: 5d}: {loss_accum.item():.6f}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}| lr: {lr:.4e}")
 
 if is_dpp:
     destroy_process_group()
