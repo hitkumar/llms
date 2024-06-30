@@ -5,7 +5,7 @@ from model import GPT, GPTConfig
 from dataloader import DataLoaderLite
 import config
 import os
-
+from evaluate import get_validation_loss, evaluate_hellaswag
 config.master_process = True
 
 # autodetect the device, below code assumes cuda
@@ -47,7 +47,7 @@ if torch.cuda.is_available():
 
 total_batch_size = 2**19
 # microbatch size
-B = 32
+B = 16
 T = 1024
 
 # define the dataloader
@@ -63,7 +63,9 @@ if config.master_process:
 
 model = GPT(GPTConfig(vocab_size=50304)) # power of 2 is better for the GPUs
 model.to(device)
-model = torch.compile(model)
+eval_hellaswag = True
+if not eval_hellaswag:
+    model = torch.compile(model)
 if is_dpp:
     model = DDP(model, device_ids=[dpp_local_rank])
 raw_model = model.module if is_dpp else model # get the raw model from dpp container
@@ -103,34 +105,20 @@ torch.set_float32_matmul_precision('high')
 # optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-9)
 optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device=device)
 # print(optimizer.param_groups)
+LOGS_DIR = os.path.join(os.path.dirname(__file__), "logs")
+os.makedirs(LOGS_DIR, exist_ok=True)
+log_file = os.path.join(LOGS_DIR, "log.txt")
+# clear the file when new training starts
+with open(log_file, 'w') as f:
+    pass
 
 # num_iters = 10
 for i in range(max_steps):
     t0 = time.time()
-
-    # Get stats on validation set once in a while
-    if i % 100 == 0:
-        model.eval()
-        val_dataloader.reset()
-        with torch.no_grad():
-            val_loss_accum = 0.0
-            val_loss_steps = 20
-            loss_total = 0.0
-            for _ in range(val_loss_steps):
-                x, y = val_dataloader.next_batch()
-                x, y = x.to(device), y.to(device)
-                with torch.autocast(device_type=device, dtype=torch.bfloat16):
-                    logits, loss = model(x, y)
-                loss_total += loss.detach()
-
-            loss_total /= val_loss_steps
-            val_loss_accum = loss_total.detach()
-        
-        if is_dpp:
-            dist.all_reduce(val_loss_accum, op=dist.ReduceOp.AVG)
-        
-        if config.master_process:
-            print(f"val loss at iter {i}: {val_loss_accum.item():.4f}")
+    last_step = (i == max_steps - 1)
+    get_validation_loss(model, raw_model, val_dataloader, is_dpp, LOGS_DIR, i, last_step, device)
+    if config.master_process and eval_hellaswag:
+        evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, LOGS_DIR, i, last_step, device)
 
     model.train()
     optimizer.zero_grad()
@@ -165,40 +153,8 @@ for i in range(max_steps):
     tokens_per_sec = tokens_processed / (t1 - t0)
     if config.master_process:
         print(f"loss at iter {i: 5d}: {loss_accum.item():.6f}, time_taken: {dt:.2f}, tokens_per_sec: {tokens_per_sec:.2f}, norm: {norm:.4f}| lr: {lr:.4e}")
+        with open(log_file, 'a') as f:
+            f.write(f"{i} train {loss_accum.item():.4f}\n")
 
 if is_dpp:
     destroy_process_group()
-
-# import sys; sys.exit(0)
-
-# model.eval()
-# num_return_sequences = 5
-# max_length = 30
-# enc = tiktoken.get_encoding('gpt2')
-# tokens = enc.encode("Hello, I'm a language model,")
-# tokens = torch.tensor(tokens, dtype=torch.long) # (8,)
-# tokens = tokens.unsqueeze(0).repeat(num_return_sequences, 1) # (5, 8)
-
-# x = tokens.to(device)
-
-# torch.manual_seed(42)
-# torch.cuda.manual_seed(42)
-
-# # (B, T)
-# while x.size(1) < max_length:
-#     with torch.no_grad():
-#         # (B, T, vocab_size)
-#         logits = model(x)
-#         # (B, vocab_size)
-#         logits = logits[:, -1, :]
-#         probs = F.softmax(logits, dim=-1)
-
-#         # (B, 50)
-#         topk_probs, topk_indices = torch.topk(probs, 50, dim=-1)
-#         new_id = torch.multinomial(topk_probs, num_samples=1) # (B, 1)
-#         new_id = torch.gather(topk_indices, -1, new_id) # (B, 1)
-#         # (B, T + 1)
-#         x = torch.cat((x, new_id), dim=-1)
-
-# for i in range(num_return_sequences):
-#     print(enc.decode(x[i].tolist()))
