@@ -24,7 +24,7 @@ class DataLoaderLite:
         # self.tokens = torch.tensor(tokens)
 
         assert split in ('train', 'val')
-        root_dir = "edu_fineweb10TB"
+        root_dir = "/home/htkumar/llms/gpt2_karpathy/edu_fineweb10TB"
         shards = os.listdir(root_dir)
         shards = sorted(shards)
         shards = [os.path.join(root_dir, s) for s in shards if split in s]
