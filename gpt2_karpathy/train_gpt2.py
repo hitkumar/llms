@@ -63,7 +63,7 @@ if config.master_process:
 
 model = GPT(GPTConfig(vocab_size=50304)) # power of 2 is better for the GPUs
 model.to(device)
-eval_hellaswag = True
+eval_hellaswag = False
 if not eval_hellaswag:
     model = torch.compile(model)
 if is_dpp:
