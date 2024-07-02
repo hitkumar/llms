@@ -41,6 +41,8 @@ else:
         device = 'mps'
     print(f'using device: {device}')
 
+device_type = 'cuda' if device.startswith('cuda') else 'cpu'
+
 torch.manual_seed(1337)
 if torch.cuda.is_available():
     torch.cuda.manual_seed(1337)
@@ -103,7 +105,7 @@ torch.set_float32_matmul_precision('high')
 
 # optimizer loop
 # optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-9)
-optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device=device)
+optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device_type=device_type)
 # print(optimizer.param_groups)
 LOGS_DIR = os.path.join(os.path.dirname(__file__), "logs")
 os.makedirs(LOGS_DIR, exist_ok=True)
@@ -126,7 +128,7 @@ for i in range(max_steps):
     for microstep in range(grad_accum_steps):
         x, y = train_dataloader.next_batch()
         x, y = x.to(device), y.to(device)
-        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+        with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
             logits, loss = model(x, y)
 
         # since we want mean divide by grad_accum_steps 1 / micro_batch_size becomes 1 / grad_accum_steps * micro_batch_size

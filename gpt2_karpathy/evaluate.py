@@ -9,7 +9,7 @@ import tiktoken
 from torch.nn import functional as F 
 
 
-def get_validation_loss(model, raw_model, val_dataloader, is_dpp, log_dir, step, last_step, device):
+def get_validation_loss(model, raw_model, val_dataloader, is_dpp, log_dir, step, last_step, device, device_type):
     if step % 250 == 0 or last_step:
         model.eval()
         val_dataloader.reset()
@@ -20,7 +20,7 @@ def get_validation_loss(model, raw_model, val_dataloader, is_dpp, log_dir, step,
             for _ in range(val_loss_steps):
                 x, y = val_dataloader.next_batch()
                 x, y = x.to(device), y.to(device)
-                with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
                     logits, loss = model(x, y)
                 loss_total += loss.detach()
 
@@ -48,7 +48,7 @@ def get_validation_loss(model, raw_model, val_dataloader, is_dpp, log_dir, step,
                 torch.save(checkpoint, checkpoint_file)
 
 
-def evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, log_dir, step, last_step, device):
+def evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, log_dir, step, last_step, device, device_type):
     if (step % 500 == 0 or last_step):
         # print('Evaluating Hellaswag')
         # load the model from latest checkpoint saved in `get_validation_loss`
@@ -71,7 +71,7 @@ def evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, log_dir
             tokens = tokens.to(device)
             mask = mask.to(device)
             with torch.no_grad():
-                with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
                     logits, loss = model(tokens)
                 pred_norm = get_most_likely_row(tokens, mask, logits)
             
@@ -111,7 +111,7 @@ def evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, log_dir
         while x.size(1) < max_length:
             with torch.no_grad():
                 # (B, T, vocab_size)
-                with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
                     logits, loss = model(x)
                 # (B, vocab_size)
                 # print(logits.shape)

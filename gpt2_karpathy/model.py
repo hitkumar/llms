@@ -28,7 +28,7 @@ class CausalSelfAttention(nn.Module):
         self.head_dim = config.n_embd //  config.n_head
 
         # mask following OpenAI / HF naming
-        self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size)).view(1, 1, config.block_size, config.block_size))
+        # self.register_buffer("bias", torch.tril(torch.ones(config.block_size, config.block_size)).view(1, 1, config.block_size, config.block_size))
 
     def forward(self, x):
         # x is of shape (B, seq_len, emb_dim)
@@ -181,7 +181,7 @@ class GPT(nn.Module):
         
         return logits, loss
     
-    def configure_optimizers(self, weight_decay, learning_rate, device):
+    def configure_optimizers(self, weight_decay, learning_rate, device_type):
         # Find all parameters that require gradients
         params_dict = {pn: p for pn, p in self.named_parameters()}
         params_dict = {pn: p for pn, p in params_dict.items() if p.requires_grad}
@@ -198,7 +198,7 @@ class GPT(nn.Module):
         num_nondecay_params = sum(p.numel() for p in nondecay_params)
 
         fused_available = 'fused' in inspect.signature(torch.optim.AdamW).parameters
-        use_fused = fused_available and 'cuda' in device
+        use_fused = fused_available and device_type == 'cuda'
         if config.master_process:
             print(f'num_decay_params: {num_decay_params}, num_nondecay_params: {num_nondecay_params}, use_fused: {use_fused}')
         optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused)
