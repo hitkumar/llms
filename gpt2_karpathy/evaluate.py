@@ -4,7 +4,6 @@ import torch
 import torch.distributed as dist
 import os
 from model import GPT, GPTConfig
-from torch.nn.parallel import DistributedDataParallel as DDP
 import tiktoken
 from torch.nn import functional as F 
 
