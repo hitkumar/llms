@@ -107,7 +107,9 @@ torch.set_float32_matmul_precision('high')
 # optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-9)
 optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device_type=device_type)
 # print(optimizer.param_groups)
-LOGS_DIR = os.path.join(os.path.dirname(__file__), "logs")
+
+experiment_id = "base_gpt2"
+LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
 os.makedirs(LOGS_DIR, exist_ok=True)
 log_file = os.path.join(LOGS_DIR, "log.txt")
 # clear the file when new training starts
@@ -118,9 +120,9 @@ with open(log_file, 'w') as f:
 for i in range(max_steps):
     t0 = time.time()
     last_step = (i == max_steps - 1)
-    get_validation_loss(model, raw_model, val_dataloader, is_dpp, LOGS_DIR, i, last_step, device)
+    get_validation_loss(model, raw_model, val_dataloader, is_dpp, LOGS_DIR, i, last_step, device, device_type)
     if config.master_process and eval_hellaswag:
-        evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, LOGS_DIR, i, last_step, device)
+        evaluate_hellaswag(is_dpp, dpp_world_size, dpp_rank, dpp_local_rank, LOGS_DIR, i, last_step, device, device_type)
 
     model.train()
     optimizer.zero_grad()
@@ -128,14 +130,14 @@ for i in range(max_steps):
     for microstep in range(grad_accum_steps):
         x, y = train_dataloader.next_batch()
         x, y = x.to(device), y.to(device)
+        if is_dpp:
+            model.require_backward_grad_sync = (microstep == grad_accum_steps - 1)
         with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
             logits, loss = model(x, y)
 
         # since we want mean divide by grad_accum_steps 1 / micro_batch_size becomes 1 / grad_accum_steps * micro_batch_size
         loss = loss / grad_accum_steps   
         loss_accum += loss.detach()
-        if is_dpp:
-            model.require_backward_grad_sync = (microstep == grad_accum_steps - 1)
         loss.backward()
     
     if is_dpp:

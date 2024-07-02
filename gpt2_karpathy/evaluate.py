@@ -10,7 +10,7 @@ from torch.nn import functional as F
 
 
 def get_validation_loss(model, raw_model, val_dataloader, is_dpp, log_dir, step, last_step, device, device_type):
-    if step % 250 == 0 or last_step:
+    if step % 500 == 0 or last_step:
         model.eval()
         val_dataloader.reset()
         with torch.no_grad():
@@ -37,7 +37,7 @@ def get_validation_loss(model, raw_model, val_dataloader, is_dpp, log_dir, step,
                 f.write(f"{step} val {val_loss_accum.item():.4f}\n")
             
             # write model checkpoints
-            if (step % 500 == 0 or last_step):
+            if (step % 2000 == 0 or last_step):
                 checkpoint_file = os.path.join(log_dir, f"model_{step:05d}.pt")
                 checkpoint = {
                     'model': raw_model.state_dict(),

@@ -2,4 +2,4 @@ edu_fineweb10TB/
 __pycache__/
 input.txt
 hellaswag/
-logs/
+logs*/
