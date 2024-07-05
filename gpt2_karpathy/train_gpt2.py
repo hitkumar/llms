@@ -72,7 +72,8 @@ if is_dpp:
     model = DDP(model, device_ids=[dpp_local_rank])
 raw_model = model.module if is_dpp else model # get the raw model from dpp container
 
-max_lr = 6e-4
+# make max_lr 3x.
+max_lr = 6e-4 * 3
 min_lr = max_lr * 0.1
 
 # gpt-3 warmup schedule where we warmup for 375M tokens, in each step we train over 2**19 tokens, this is 375M / 2^19
@@ -108,7 +109,7 @@ torch.set_float32_matmul_precision('high')
 optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device_type=device_type)
 # print(optimizer.param_groups)
 
-experiment_id = "base_gpt2"
+experiment_id = "base_gpt2_increase_lr"
 LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
 os.makedirs(LOGS_DIR, exist_ok=True)
 log_file = os.path.join(LOGS_DIR, "log.txt")
