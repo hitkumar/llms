@@ -79,7 +79,8 @@ min_lr = max_lr * 0.1
 # gpt-3 warmup schedule where we warmup for 375M tokens, in each step we train over 2**19 tokens, this is 375M / 2^19
 warmup_steps = 715
 # 1 epoch over the 10B token dataset, each step we train over 2**19 tokens
-max_steps = 19073
+# Do 3 epochs through the dataset.
+max_steps = 19073 * 3
 
 
 def get_lr(it):
@@ -109,7 +110,7 @@ torch.set_float32_matmul_precision('high')
 optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device_type=device_type)
 # print(optimizer.param_groups)
 
-experiment_id = "base_gpt2_increase_lr"
+experiment_id = "base_gpt2_inc_lr_3_epochs"
 LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
 os.makedirs(LOGS_DIR, exist_ok=True)
 log_file = os.path.join(LOGS_DIR, "log.txt")
