@@ -164,23 +164,6 @@ def generate_text_simple(model, idx, max_new_tokens, context_size):
     
     return idx
 
-# Util functions
-def generate_text_simple(model, idx, max_new_tokens, context_size):
-    # idx is (B, T) array of indices in current context
-
-    for _ in range(max_new_tokens):
-        idx_cond = idx[:, -context_size:]
-
-        with torch.no_grad():
-            logits = model(idx_cond) # (B, T, vocab_size)
-        
-        logits = logits[:, -1, :] # (batch, vocab_size)
-        idx_next = torch.argmax(logits, dim=1, keepdim=True) # (batch, 1)
-
-        idx = torch.cat((idx, idx_next), dim=1) # (batch, n_tokens+1)
-    
-    return idx
-
 def assign(left, right):
     if left.shape != right.shape:
         raise ValueError(f"Shape mismatch, Left: {left.shape}, right: {right.shape}")
