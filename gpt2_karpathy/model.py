@@ -4,6 +4,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import inspect
 import config
+from typing import List, Optional, Union
+
+@dataclass
+class MoeArgs:
+    num_experts: int = 8
+    num_experts_per_tok: int = 2
 
 @dataclass
 class GPTConfig:
@@ -12,6 +18,32 @@ class GPTConfig:
     n_layer: int = 12
     n_head: int = 12
     n_embd: int = 768
+    moe_args: Optional[MoeArgs] = None
+
+
+class MoeLayer(nn.Module):
+    def __init__(self, experts: List[nn.Module], gate: nn.Module, moe_args: MoeArgs):
+        super().__init__()
+        assert len(experts) > 0
+        self.experts = nn.ModuleList(experts)
+        self.gate = gate
+        self.moe_args = moe_args
+    
+    def forward(self, inputs: torch.tensor):
+        # Shape [B * L, emb_dim]
+        inputs_squashed = inputs.view(-1, inputs.shape[-1])
+        # Shape [B * L, num_experts]
+        gate_logits = self.gate(inputs_squashed)
+        # Shape [B * L, num_experts_per_tok]
+        weights, selected_experts = torch.topk(gate_logits, self.moe_args.num_experts_per_tok)
+        weights = F.softmax(weights, dim=1, dtype=torch.float).type_as(inputs)
+
+        results = torch.zeros_like(inputs_squashed)
+        for i, expert in enumerate(self.experts):
+            batch_idx, nth_expert = torch.where(selected_experts == i)
+            results[batch_idx] += weights[batch_idx, nth_expert, None] * expert(inputs_squashed[batch_idx])
+        
+        return results.view(inputs.shape)
 
 class CausalSelfAttention(nn.Module):
 
@@ -74,11 +106,19 @@ class MLP(nn.Module):
 class Block(nn.Module):
     def __init__(self, config):
         super().__init__()
+        self.mlp: Union[MLP, MoeLayer]
+        if config.moe_args is not None:
+            self.mlp = MoeLayer(
+                experts=[MLP(config) for _ in range(config.moe_args.num_experts)],
+                gate=nn.Linear(config.n_embd, config.moe_args.num_experts, bias=False),
+                moe_args=config.moe_args,
+            )
+        else:
+            self.mlp = MLP(config)
 
         self.ln_1 = nn.LayerNorm(config.n_embd)
         # (B, seq_len, emb_dim) -> (B, seq_len, 3 * emb_dim) -> (B, seq_len, emb_dim)
         self.attn = CausalSelfAttention(config)
-        self.mlp = MLP(config)
         self.ln_2 = nn.LayerNorm(config.n_embd)
 
     def forward(self, x):

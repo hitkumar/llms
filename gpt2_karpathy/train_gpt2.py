@@ -1,7 +1,7 @@
 import torch
 import time
 import math
-from model import GPT, GPTConfig
+from model import GPT, GPTConfig, MoeArgs
 from dataloader import DataLoaderLite
 import config
 import os
@@ -49,7 +49,7 @@ if torch.cuda.is_available():
 
 total_batch_size = 2**19
 # microbatch size
-B = 16
+B = 8
 T = 1024
 
 # define the dataloader
@@ -63,7 +63,7 @@ if config.master_process:
 
 # model = GPT.from_pretrained('gpt2')
 
-model = GPT(GPTConfig(vocab_size=50304)) # power of 2 is better for the GPUs
+model = GPT(GPTConfig(vocab_size=50304, moe_args=MoeArgs())) # power of 2 is better for the GPUs
 model.to(device)
 eval_hellaswag = False
 if not eval_hellaswag:
@@ -73,14 +73,14 @@ if is_dpp:
 raw_model = model.module if is_dpp else model # get the raw model from dpp container
 
 # make max_lr 3x.
-max_lr = 6e-4 * 3
+max_lr = 6e-4 * 4
 min_lr = max_lr * 0.1
 
 # gpt-3 warmup schedule where we warmup for 375M tokens, in each step we train over 2**19 tokens, this is 375M / 2^19
-warmup_steps = 715
+warmup_steps = 500
 # 1 epoch over the 10B token dataset, each step we train over 2**19 tokens
-# Do 3 epochs through the dataset.
-max_steps = 19073 * 3
+# Do 1 epochs through the dataset.
+max_steps = 19073
 
 
 def get_lr(it):
@@ -110,7 +110,7 @@ torch.set_float32_matmul_precision('high')
 optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=3e-4, device_type=device_type)
 # print(optimizer.param_groups)
 
-experiment_id = "base_gpt2_inc_lr_3_epochs"
+experiment_id = "base_gpt2_mistral_moe"
 LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
 os.makedirs(LOGS_DIR, exist_ok=True)
 log_file = os.path.join(LOGS_DIR, "log.txt")
