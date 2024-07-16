@@ -18,6 +18,7 @@ Classification fine tuning and instruction fine tuning experiments
 | base_gpt2    | 3.0829   | GPT-2 trained from scratch   |
 | base_gpt2_increase_lr | 3.0430 | base_gpt2 with 3x learning rate |
 | base_gpt2_inc_lr_3_epochs    | 2.9711  | Train for 3 epochs, train longer once quality improves more on 1 epoch  |
+|base_gpt2_mistral_moe| 2.8782 | Mistral MOE arch with 8 experts, 2 experts per token|
 
 Helpful Commands
 - Distributed training run: torchrun --standalone --nproc_per_node=8 train_gpt2.py
