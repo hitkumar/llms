@@ -50,7 +50,7 @@ if torch.cuda.is_available():
 total_batch_size = 2**19
 # microbatch size
 B = 8
-T = 1024
+T = 2048
 
 # define the dataloader
 train_dataloader = DataLoaderLite(B=B, T=T, process_rank=dpp_rank, num_processes=dpp_world_size, split='train')
@@ -63,7 +63,7 @@ if config.master_process:
 
 # model = GPT.from_pretrained('gpt2')
 
-model = GPT(GPTConfig(vocab_size=50304, moe_args=MoeArgs())) # power of 2 is better for the GPUs
+model = GPT(GPTConfig(vocab_size=50304)) # power of 2 is better for the GPUs
 model.to(device)
 eval_hellaswag = False
 if not eval_hellaswag:

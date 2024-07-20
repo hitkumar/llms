@@ -13,7 +13,7 @@ class MoeArgs:
 
 @dataclass
 class GPTConfig:
-    block_size: int = 1024 # max sequence length
+    block_size: int = 2048 # max sequence length
     vocab_size: int = 50257  # number of tokens: 50K BPE merges + 256 bytes tokens + 1 endoftext token
     n_layer: int = 12
     n_head: int = 12
