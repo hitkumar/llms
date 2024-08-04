@@ -231,7 +231,7 @@ def evaluate_model(model, train_loader, val_loader, device, eval_iter):
 
 def generate_and_print_sample(model, tokenizer, device, start_context):
     model.eval()
-    context_size = model.pos_emb.shape[0]
+    context_size = model.pos_emb.weight.shape[0]
     encoded = text_to_token_ids(start_context, tokenizer).to(device)
     with torch.no_grad():
         token_ids = generate_text_simple(model=model, idx=encoded, max_new_tokens=50, context_size=context_size)
@@ -258,7 +258,7 @@ def train_model_simple(model, train_loader, val_loader, optimizer, device, num_e
             global_step += 1
 
             # eval at certain intervals
-            if epoch % eval_freq == 0:
+            if global_step % eval_freq == 0:
                 train_loss, val_loss = evaluate_model(model, train_loader, val_loader, device, eval_iter)
                 train_losses.append(train_loss)
                 val_losses.append(val_loss)
@@ -270,8 +270,21 @@ def train_model_simple(model, train_loader, val_loader, optimizer, device, num_e
     return train_losses, val_losses, track_tokens_seen
 
 def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
-    fig, ax1 = plt.subplots(figsize=(5, 3))
-    # TODO: implement in notebook first for more understanding
+    fig,ax1 = plt.subplots(figsize=(5, 3))
+
+    ax1.plot(epochs_seen, train_losses, label="Training losses")
+    ax1.plot(epochs_seen, val_losses, label="Validation loss")
+    ax1.set_xlabel("Epochs")
+    ax1.set_ylabel("Loss")
+    ax1.legend(loc='upper right')
+    ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+    ax2 = ax1.twiny()
+    ax2.plot(tokens_seen, train_losses)
+    ax2.set_xlabel('Tokens seen')
+
+    fig.tight_layout()
+    plt.show()
 
 
 def assign(left, right):
