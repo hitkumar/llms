@@ -349,7 +349,7 @@ class GemmaForCausalLM(nn.Module):
         return res
 
 class PaliGemmaMultiModalProjector(nn.Module):
-    def __init_(self, config: PaliGemmaConfig):
+    def __init__(self, config: PaliGemmaConfig):
         super().__init__()
         self.linear = nn.Linear(config.vision_config.hidden_size, config.vision_config.projection_dim, bias=True)
     
