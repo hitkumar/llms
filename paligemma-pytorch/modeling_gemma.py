@@ -2,12 +2,10 @@ import math
 from typing import List, Optional, Tuple
 
 import fastcore.all as fc
-
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from modeling_siglip import SiglipVisionConfig, SiglipVisionModel
-from torch import nn
-from torch.nn import CrossEntropyLoss
 
 
 class KVCache:
@@ -41,7 +39,6 @@ class KVCache:
 
 
 class GemmaConfig:
-
     def __init__(
         self,
         vocab_size,
@@ -64,7 +61,6 @@ class GemmaConfig:
 
 
 class PaliGemmaConfig:
-
     def __init__(
         self,
         vision_config=None,
@@ -91,6 +87,7 @@ class PaliGemmaConfig:
 
 
 class GemmaRMSNorm(nn.Module):
+    # input is [B, seq_len, dim]
     def __init__(self, dim: int, eps: float = 1e-6):
         super().__init__()
         self.eps = eps
@@ -109,7 +106,7 @@ class GemmaRotaryEmbedding(nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base=10000, device=None):
         super().__init__()
         # head dim
-        self.dim = dim  # it is set to the head_dim
+        self.dim = dim
         self.max_position_embeddings = max_position_embeddings
         self.base = base
 
@@ -438,19 +435,19 @@ class PaliGemmaForConditionalGeneration(nn.Module):
         self.multi_modal_projector = PaliGemmaMultiModalProjector(config)
         self.vocab_size = config.vocab_size
 
-        self.language_model = GemmaForCausalLM(config.text_config)
-
+        language_model = GemmaForCausalLM(config.text_config)
+        self.language_model = language_model
         self.pad_token_id = (
             self.config.pad_token_id if self.config.pad_token_id is not None else -1
         )
 
     def tie_weights(self):
-        return self.language_model.tie_weights()
+        self.language_model.tie_weights()
 
     def _merge_input_ids_with_image_features(
         self,
         image_features: torch.tensor,
-        inputs_embeds: torch.tensor,
+        input_embeds: torch.tensor,
         input_ids: torch.tensor,
         attention_mask: torch.tensor,
         kv_cache: Optional[KVCache] = None,
@@ -460,7 +457,7 @@ class PaliGemmaForConditionalGeneration(nn.Module):
         # attention mask is [bs, seq_len] and is all 1s, no padding.
         _, _, embed_dim = image_features.shape
         batch_size, seq_len = input_ids.shape
-        dtype, device = inputs_embeds.dtype, inputs_embeds.device
+        dtype, device = input_embeds.dtype, input_embeds.device
 
         # scaling image features
         # shape is [bs, num_patches, embed_dim]
@@ -476,26 +473,23 @@ class PaliGemmaForConditionalGeneration(nn.Module):
         image_mask = input_ids == self.config.image_token_index
         pad_mask = input_ids == self.config.pad_token_id
 
-        # We need to expand the masks to the embedding dimension otherwise we can't use them in torch.where
         # shape is [bs, seq_len, embed_dim]
         text_mask_expanded = text_mask[:, :, None].expand(-1, -1, embed_dim)
         image_mask_expanded = image_mask[:, :, None].expand(-1, -1, embed_dim)
         pad_mask_expanded = pad_mask[:, :, None].expand(-1, -1, embed_dim)
 
-        # Add the text embeddings
-        final_embedding = torch.where(
-            text_mask_expanded, inputs_embeds, final_embedding
-        )
-        # Insert image embeddings. We can't use torch.where because the sequence length of scaled_image_features is not equal to the sequence length of the final embedding
+        # Add text embeddings
+        final_embedding = torch.where(text_mask_expanded, input_embeds, final_embedding)
+        # print(
+        #     f"{final_embeddings.dtype}, {image_mask_expanded.dtype}, {scaled_image_features.dtype}"
+        # )
+        # insert image embeddings
         final_embedding = final_embedding.masked_scatter(
             image_mask_expanded, scaled_image_features
         )
-        # Zero out padding tokens
         final_embedding = torch.where(
             pad_mask_expanded, torch.zeros_like(final_embedding), final_embedding
         )
-
-        #### CREATE THE ATTENTION MASK ####
 
         if kv_cache is None or kv_cache.num_items() == 0:
             # No masking as we are in prefilling stage
