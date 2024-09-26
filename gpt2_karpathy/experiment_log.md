@@ -24,3 +24,8 @@ Classification fine tuning and instruction fine tuning experiments
 Helpful Commands
 - Distributed training run: torchrun --standalone --nproc_per_node=8 train_gpt2.py
 - simple launch: python3 train_gpt2.py
+
+
+### Dev Notes
+
+To use modules inside python projects, use `pip install -e .` after adding setup.py
