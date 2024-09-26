@@ -4,3 +4,4 @@ input.txt
 hellaswag/
 logs*/
 *.egg-info/
+data/openwebtext
