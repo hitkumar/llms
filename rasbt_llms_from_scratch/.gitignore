@@ -6,3 +6,4 @@ sms_spam_collection/
 **/__pycache__
 *.pth
 *.pdf
+*.egg-info/
