@@ -317,13 +317,13 @@ def train_model_simple(
     return train_losses, val_losses, track_tokens_seen
 
 
-def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
+def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses, label="loss"):
     fig, ax1 = plt.subplots(figsize=(5, 3))
 
     ax1.plot(epochs_seen, train_losses, label="Training losses")
-    ax1.plot(epochs_seen, val_losses, label="Validation loss")
+    ax1.plot(epochs_seen, val_losses, linestyle="-", label="Validation loss")
     ax1.set_xlabel("Epochs")
-    ax1.set_ylabel("Loss")
+    ax1.set_ylabel(label.capitalize())
     ax1.legend(loc="upper right")
     ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
