@@ -7,3 +7,4 @@ sms_spam_collection/
 *.pth
 *.pdf
 *.egg-info/
+*.txt
