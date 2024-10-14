@@ -169,6 +169,8 @@ for i in range(max_steps):
             model.require_backward_grad_sync = microstep == grad_accum_steps - 1
         with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
             logits, loss = model(x, y)
+            # debug in vscode
+            import code; code.interact(local=locals())
 
         # since we want mean divide by grad_accum_steps 1 / micro_batch_size becomes 1 / grad_accum_steps * micro_batch_size
         loss = loss / grad_accum_steps
@@ -185,7 +187,8 @@ for i in range(max_steps):
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
     optimizer.step()
-    torch.cuda.synchronize()  # wait for the gpu to finish
+    if device_type == 'cuda':
+        torch.cuda.synchronize()  # wait for the gpu to finish
     t1 = time.time()
     dt = (t1 - t0) * 1e3  # time difference in ms
     tokens_processed = (

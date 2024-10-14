@@ -63,7 +63,7 @@ class DatasetDownloader:
                     filename = os.path.join(
                         self.data_cache_dir, f"{split}_{shard_index:03d}"
                     )
-                    remainder = shard_size - token_count
+                    remainder = self.shard_size - token_count
                     progress_bar.update(remainder)
                     all_tokens_np[token_count : token_count + remainder] = tokens[
                         :remainder

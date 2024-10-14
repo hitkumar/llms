@@ -63,6 +63,7 @@ class CausalSelfAttention(nn.Module):
         # key, query, value projections for all heads
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd)
         self.c_proj = nn.Linear(config.n_embd, config.n_embd)
+        # This is used to initialize the residual layers correctly.
         self.c_proj.NANOGPT_SCALE_INIT = 1
 
         self.n_head = config.n_head
@@ -154,9 +155,11 @@ class GPT(nn.Module):
         )
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
+        # weight sharing between botton and top layers.
         self.transformer.wte.weight = self.lm_head.weight
 
         # init params
+        # iterates all the modules and applies init_weights function.
         self.apply(self._init_weights)
 
     def _init_weights(self, module):
