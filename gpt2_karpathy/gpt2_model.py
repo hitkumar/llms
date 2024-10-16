@@ -2,7 +2,8 @@ import inspect
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-import config
+import ddp_config
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -272,7 +273,7 @@ class GPT(nn.Module):
 
         fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
         use_fused = fused_available and device_type == "cuda"
-        if config.master_process:
+        if ddp_config.master_process:
             print(
                 f"num_decay_params: {num_decay_params}, num_nondecay_params: {num_nondecay_params}, use_fused: {use_fused}"
             )

@@ -1,16 +1,20 @@
-import torch
-import config
-import numpy as np
 import os
+
+import ddp_config
+
+import numpy as np
+import torch
+
 
 def load_tokens(filename):
     npt = np.load(filename)
     ptt = torch.tensor(npt, dtype=torch.long)
     return ptt
 
+
 class DataLoaderLite:
     def __init__(self, B, T, process_rank, num_processes, split):
-        " split could be train or val"
+        "split could be train or val"
         self.B = B
         self.T = T
         self.process_rank = process_rank
@@ -18,12 +22,12 @@ class DataLoaderLite:
 
         # with open('/home/htkumar/llms/gpt2_karpathy/input.txt', 'r') as f:
         #     text = f.read()
-        
+
         # enc = tiktoken.get_encoding('gpt2')
         # tokens = enc.encode(text)
         # self.tokens = torch.tensor(tokens)
 
-        assert split in ('train', 'val')
+        assert split in ("train", "val")
         root_dir = "/home/htkumar/llms/gpt2_karpathy/edu_fineweb10TB"
         shards = os.listdir(root_dir)
         shards = sorted(shards)
@@ -31,12 +35,11 @@ class DataLoaderLite:
         self.shards = shards
         assert len(shards) > 0, f"no shards found for {split}"
 
-        if config.master_process:
-            # print(f"loaded {len(tokens)} in dataloader, num_batches in 1 epoch is {len(tokens) // (B * T * self.num_processes)}")
+        if ddp_config.master_process:
             print(f"found {len(shards)} for split {split}")
 
         self.reset()
-    
+
     def reset(self):
         # B*T tokens are reserved for each process
         self.current_shard = 0
@@ -45,7 +48,7 @@ class DataLoaderLite:
 
     def next_batch(self):
         B, T = self.B, self.T
-        buf = self.tokens[self.current_position: self.current_position + B * T + 1]
+        buf = self.tokens[self.current_position : self.current_position + B * T + 1]
         x = buf[:-1].view(B, T)
         y = buf[1:].view(B, T)
         self.current_position += B * T * self.num_processes

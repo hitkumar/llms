@@ -20,7 +20,7 @@ class DatasetDownloader:
 
     def tokenize(self, doc):
         """
-        tokeniuze this doc using gpt tokenizer
+        tokenize this doc using gpt tokenizer
         uint16 is used since vocab size is 50257 and range of uint16 is 0-65535
         """
         tokens = [self.eot]
