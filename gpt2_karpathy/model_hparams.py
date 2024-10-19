@@ -11,3 +11,4 @@ class HParams:
     total_batch_size: int
     B: int
     T: int
+    log_freq: int

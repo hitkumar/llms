@@ -6,7 +6,8 @@ import ddp_config
 import torch
 
 import torch.distributed as dist
-from evaluate import evaluate_hellaswag, get_validation_loss
+from evaluate import get_validation_loss
+from hellaswag import evaluate_hellaswag
 from model_hparams import HParams
 
 from torch.distributed import destroy_process_group, init_process_group
@@ -51,7 +52,6 @@ def train_model(
     train_dataloader,
     val_dataloader,
     model_hparams,
-    eval_hellaswag,
     experiment_id,
 ):
     LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
@@ -62,8 +62,7 @@ def train_model(
         pass
 
     model.to(ddp_config.device)
-    if not eval_hellaswag:
-        model = torch.compile(model)
+    model = torch.compile(model)
     if ddp_config.is_dpp:
         model = DDP(model, device_ids=[ddp_config.dpp_local_rank])
     raw_model = (
@@ -86,7 +85,7 @@ def train_model(
 
     optimizer = raw_model.configure_optimizers(
         weight_decay=model_hparams.weight_decay,
-        learning_rate=model_hparams.min_lr,
+        learning_rate=3e-4,
         device_type=ddp_config.device_type,
     )
     for i in range(model_hparams.max_steps):
@@ -102,19 +101,20 @@ def train_model(
             last_step,
             ddp_config.device,
             ddp_config.device_type,
+            model_hparams.log_freq,
         )
-        if ddp_config.master_process and eval_hellaswag:
-            evaluate_hellaswag(
-                ddp_config.is_dpp,
-                ddp_config.dpp_world_size,
-                ddp_config.dpp_rank,
-                ddp_config.dpp_local_rank,
-                LOGS_DIR,
-                i,
-                last_step,
-                ddp_config.device,
-                ddp_config.device_type,
-            )
+        evaluate_hellaswag(
+            ddp_config.is_dpp,
+            ddp_config.dpp_world_size,
+            ddp_config.dpp_rank,
+            ddp_config.dpp_local_rank,
+            LOGS_DIR,
+            i,
+            last_step,
+            ddp_config.device,
+            ddp_config.device_type,
+            model_hparams.log_freq,
+        )
 
         model.train()
         optimizer.zero_grad()

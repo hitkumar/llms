@@ -5,7 +5,6 @@ import time
 import torch
 
 import torch.distributed as dist
-from evaluate import evaluate_hellaswag, get_validation_loss
 from model_hparams import HParams
 
 from torch.distributed import destroy_process_group, init_process_group
