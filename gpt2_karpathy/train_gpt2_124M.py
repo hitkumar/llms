@@ -7,8 +7,10 @@ import ddp_config
 import torch
 
 import torch.distributed as dist
+
 from dataloader import DataLoaderLite
-from evaluate import evaluate_hellaswag, get_validation_loss
+
+from evaluate import get_validation_loss
 from gpt2_model import GPT, GPTConfig, MoeArgs
 from hellaswag import get_most_likely_row, iterate_examples, render_example
 from model_hparams import HParams
@@ -54,10 +56,10 @@ experiment_id = "gpt2_124M_compile_lr"
 
 # Train the model
 
-# train_model(
-#     model,
-#     train_dataloader,
-#     val_dataloader,
-#     hparams,
-#     experiment_id,
-# )
+train_model(
+    model,
+    train_dataloader,
+    val_dataloader,
+    hparams,
+    experiment_id,
+)
