@@ -169,11 +169,13 @@ def evaluate_hellaswag(
     device,
     device_type,
     log_freq,
+    gpt_config: GPTConfig,
     log_results: bool = True,
 ):
     if step % log_freq == 0 or last_step:
         # load the model from latest checkpoint saved in `get_validation_loss`
-        model = GPT(GPTConfig(vocab_size=50304))
+        # print(f"gpt_config={gpt_config}")
+        model = GPT(gpt_config)
         model.to(device)
         checkpoint_file = torch.load(
             os.path.join(log_dir, f"model_{step:05d}.pt"),
@@ -273,7 +275,7 @@ if __name__ == "__main__":
     # print(args)
     # evaluate(args.model, args.device)
 
-    experiment_id = "gpt2_124M_compile_lr"
+    experiment_id = "gpt2_355M"
     LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
 
     evaluate_hellaswag(

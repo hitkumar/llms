@@ -114,6 +114,7 @@ def train_model(
             ddp_config.device,
             ddp_config.device_type,
             model_hparams.log_freq,
+            raw_model.config,
         )
 
         model.train()
