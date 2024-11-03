@@ -1,9 +1,12 @@
+import inspect
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from matplotlib.ticker import MaxNLocator
+from torch.nn import functional as F
 
 
 class LayerNorm(nn.Module):
@@ -159,7 +162,7 @@ class GPTModel(nn.Module):
         self.out_head = nn.Linear(cfg["emb_dim"], cfg["vocab_size"], bias=False)
 
     def forward(self, in_idx):
-        batch_size, seq_len = in_idx.shape
+        _, seq_len = in_idx.shape
         tok_embeds = self.tok_emb(in_idx)
         pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
         x = tok_embeds + pos_embeds  # [batch_size, seq_len, emb_size]
@@ -168,6 +171,57 @@ class GPTModel(nn.Module):
         x = self.final_ln(x)
         logits = self.out_head(x)
         return logits
+
+
+class GPTModelWithTargets(nn.Module):
+    def __init__(self, cfg):
+        super().__init__()
+        self.tok_emb = nn.Embedding(cfg["vocab_size"], cfg["emb_dim"])
+        self.pos_emb = nn.Embedding(cfg["context_length"], cfg["emb_dim"])
+        self.drop_emb = nn.Dropout(cfg["drop_rate"])
+
+        self.trf_blocks = nn.Sequential(
+            *[TransformerBlock(cfg) for _ in range(cfg["n_layers"])]
+        )
+        self.final_ln = LayerNorm(cfg["emb_dim"])
+        self.out_head = nn.Linear(cfg["emb_dim"], cfg["vocab_size"], bias=False)
+
+    def forward(self, in_idx, targets=None):
+        _, seq_len = in_idx.shape
+        tok_embeds = self.tok_emb(in_idx)
+        pos_embeds = self.pos_emb(torch.arange(seq_len, device=in_idx.device))
+        x = tok_embeds + pos_embeds  # [batch_size, seq_len, emb_size]
+        x = self.drop_emb(x)
+        x = self.trf_blocks(x)
+        x = self.final_ln(x)
+        logits = self.out_head(x)
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), targets.view(-1))
+        return logits, loss
+
+    def configure_optimizers(self, weight_decay, learning_rate, device_type):
+        # Find all parameters that require gradients
+        params_dict = {pn: p for pn, p in self.named_parameters()}
+        params_dict = {pn: p for pn, p in params_dict.items() if p.requires_grad}
+
+        # Now divide params in 2 groups: ones that need weight decay and other that don't
+        decay_params = [p for n, p in params_dict.items() if p.dim() >= 2]
+        nondecay_params = [p for n, p in params_dict.items() if p.dim() < 2]
+        optim_groups = [
+            {"params": decay_params, "weight_decay": weight_decay},
+            {"params": nondecay_params, "weight_decay": 0.0},
+        ]
+
+        num_decay_params = sum(p.numel() for p in decay_params)
+        num_nondecay_params = sum(p.numel() for p in nondecay_params)
+
+        fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
+        use_fused = fused_available and device_type == "cuda"
+        optimizer = torch.optim.AdamW(
+            optim_groups, lr=learning_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused
+        )
+        return optimizer
 
 
 # Util functions
