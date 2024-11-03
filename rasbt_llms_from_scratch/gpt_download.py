@@ -106,10 +106,10 @@ def download_and_load_gpt2(model_size, models_dir):
         print(file_url, file_path)
         download_file(file_url, file_path)
 
-    return load_gpt2(model_size, model_dir)
+    return load_gpt2(model_dir)
 
 
-def load_gpt2(model_size, model_dir):
+def load_gpt2(model_dir):
     # Add tf loading part
     tf_ckpt_path = tf.train.latest_checkpoint(model_dir)
     settings = json.load(open(os.path.join(model_dir, "hparams.json")))

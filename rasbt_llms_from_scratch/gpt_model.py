@@ -200,22 +200,28 @@ def generate(
 
         # shape is (B, V)
         logits = logits[:, -1, :]
+
+        if top_k is not None:
+            topk_probs, _ = torch.topk(logits, top_k)
+            min_val = topk_probs[:, -1]
+            logits = torch.where(
+                logits < min_val,
+                torch.tensor(-float("inf")).to(logits.device),
+                logits,
+            )
+
         if temperature > 0.0:
             logits = logits / temperature
 
-        probs = F.softmax(logits, dim=-1)
-
-        if top_k is not None:
-            topk_probs, topk_indices = torch.topk(probs, top_k)
-            new_id = torch.multinomial(topk_probs, num_samples=1)  # (B, 1)
-            new_id = torch.gather(topk_indices, -1, new_id)  # (B, 1)
+            probs = F.softmax(logits, dim=-1)
+            idx_next = torch.multinomial(probs, num_samples=1)
         else:
-            new_id = torch.argmax(probs, dim=1, keepdim=True)  # (batch, 1)
+            idx_next = torch.argmax(logits, dim=1, keepdim=True)  # (batch, 1)
 
-        if new_id == eos_id:
+        if idx_next == eos_id:
             break
 
-        idx = torch.cat((idx, new_id), dim=1)  # (B, T + 1)
+        idx = torch.cat((idx, idx_next), dim=1)  # (B, T + 1)
 
     return idx
 
@@ -258,16 +264,21 @@ def evaluate_model(model, train_loader, val_loader, device, eval_iter):
     return train_loss, val_loss
 
 
-def generate_and_print_sample(model, tokenizer, device, start_context):
+def generate_and_print_sample(
+    model, tokenizer, device, start_context, max_new_tokens=50
+):
     model.eval()
     context_size = model.pos_emb.weight.shape[0]
     encoded = text_to_token_ids(start_context, tokenizer).to(device)
     with torch.no_grad():
         token_ids = generate_text_simple(
-            model=model, idx=encoded, max_new_tokens=50, context_size=context_size
+            model=model,
+            idx=encoded,
+            max_new_tokens=max_new_tokens,
+            context_size=context_size,
         )
-        decoded_text = token_ids_to_text(token_ids, tokenizer)
-        print(f"decoded text is {decoded_text}")
+    decoded_text = token_ids_to_text(token_ids, tokenizer)
+    print(f"decoded text is {decoded_text}")
 
     model.train()
 
@@ -283,6 +294,7 @@ def train_model_simple(
     eval_iter,
     start_context,
     tokenizer,
+    max_new_tokens=50,
 ):
     # initialize losses
     train_losses, val_losses, track_tokens_seen = [], [], []
@@ -312,7 +324,9 @@ def train_model_simple(
                     f"Epoch: {epoch + 1}, step: {global_step:06d}, train loss: {train_loss:.3f}, val loss: {val_loss:.3f}"
                 )
 
-        generate_and_print_sample(model, tokenizer, device, start_context)
+        generate_and_print_sample(
+            model, tokenizer, device, start_context, max_new_tokens
+        )
 
     return train_losses, val_losses, track_tokens_seen
 
