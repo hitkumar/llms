@@ -53,6 +53,7 @@ def train_model(
     val_dataloader,
     model_hparams,
     experiment_id,
+    run_hellaswag=True,
 ):
     LOGS_DIR = os.path.join(os.path.dirname(__file__), f"logs_{experiment_id}")
     os.makedirs(LOGS_DIR, exist_ok=True)
@@ -103,19 +104,20 @@ def train_model(
             ddp_config.device_type,
             model_hparams.log_freq,
         )
-        evaluate_hellaswag(
-            ddp_config.is_dpp,
-            ddp_config.dpp_world_size,
-            ddp_config.dpp_rank,
-            ddp_config.dpp_local_rank,
-            LOGS_DIR,
-            i,
-            last_step,
-            ddp_config.device,
-            ddp_config.device_type,
-            model_hparams.log_freq,
-            raw_model.config,
-        )
+        if run_hellaswag:
+            evaluate_hellaswag(
+                ddp_config.is_dpp,
+                ddp_config.dpp_world_size,
+                ddp_config.dpp_rank,
+                ddp_config.dpp_local_rank,
+                LOGS_DIR,
+                i,
+                last_step,
+                ddp_config.device,
+                ddp_config.device_type,
+                model_hparams.log_freq,
+                raw_model.config,
+            )
 
         model.train()
         optimizer.zero_grad()

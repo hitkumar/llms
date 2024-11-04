@@ -55,7 +55,8 @@ def get_validation_loss(
                 checkpoint_file = os.path.join(log_dir, f"model_{step:05d}.pt")
                 checkpoint = {
                     "model": raw_model._orig_mod.state_dict(),
-                    "config": raw_model.config,
+                    # TODO: save this conditionally if needed.
+                    # "config": raw_model.config,
                     "step": step,
                     "val_loss": val_loss_accum.item(),
                 }

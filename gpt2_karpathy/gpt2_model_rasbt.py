@@ -1,9 +1,8 @@
 import ddp_config
-
 from dataloader import DataLoaderLite
-
-from gpt2_model import GPT, GPTConfig, MoeArgs
 from model_hparams import HParams
+from rasbt_llms_from_scratch.gpt_download import BASE_CONFIG, model_configs
+from rasbt_llms_from_scratch.gpt_model import GPTModelWithTargets
 from train import train_model
 
 hparams = HParams(
@@ -14,14 +13,13 @@ hparams = HParams(
     warmup_steps=500,
     # 1 epoch over the 10B token dataset, each step we train over 2**19 tokens
     # Do 1 epochs through the dataset.
-    max_steps=19073 * 4,
+    max_steps=19073,
     total_batch_size=2**19,
     # microbatch size
     B=8,
-    T=2048,
+    T=1024,
     log_freq=1000,
 )
-
 
 # define the dataloader
 train_dataloader = DataLoaderLite(
@@ -39,14 +37,11 @@ val_dataloader = DataLoaderLite(
     split="val",
 )
 
-gpt_config = GPTConfig(
-    vocab_size=50304,
-    n_layer=24,
-    n_head=16,
-    n_embd=1024,
-)
-model = GPT(gpt_config)  # power of 2 is better for the GPUs
-experiment_id = "gpt2_355M_4epochs"
+config = BASE_CONFIG.copy()
+config.update(model_configs["gpt2-medium (355M)"])
+model = GPTModelWithTargets(config)
+
+experiment_id = "gpt2_355M_rasbt"
 
 # Train the model
 
@@ -56,4 +51,5 @@ train_model(
     val_dataloader,
     hparams,
     experiment_id,
+    run_hellaswag=False,
 )
