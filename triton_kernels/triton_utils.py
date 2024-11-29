@@ -22,7 +22,7 @@ def get_1d_offset(size, n_prev_chunks):
 
 
 @triton.jit
-def get_2d_offset(offs_0, offs_1, stride_0, stride_1):
+def get_2d_offset(offs_0, offs_1, stride_0, stride_1=1):
     return offs_0[:, None] * stride_0 + offs_1[None, :] * stride_1
 
 
