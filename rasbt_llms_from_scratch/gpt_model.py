@@ -410,7 +410,7 @@ def assign(left, right):
 
 
 def text_to_token_ids(text, tokenizer):
-    encoded = tokenizer.encode(text, allowed_special={"<|endoftext|>"})
+    encoded = tokenizer.encode(text)
     encoded = torch.tensor(encoded).unsqueeze(0)
     return encoded
 
