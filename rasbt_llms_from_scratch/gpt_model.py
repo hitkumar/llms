@@ -405,8 +405,12 @@ def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses, label="loss"
 
 def assign(left, right):
     if left.shape != right.shape:
-        raise ValueError(f"Shape mismatch, Left: {left.shape}, right: {right.shape}")
-    return torch.nn.Parameter(torch.tensor(right))
+        raise ValueError(f"Shape mismatch, left: {left.shape}, right: {right.shape}")
+
+    if isinstance(right, torch.Tensor):
+        return torch.nn.Parameter(right.clone().detach())
+    else:
+        return torch.nn.Parameter(torch.tensor(right))
 
 
 def text_to_token_ids(text, tokenizer):
