@@ -33,8 +33,12 @@ Classification fine tuning and instruction fine tuning experiments
 
 
 Llama model training
+
 - LLama2 7b OOM on A100 40gb so far.
+- Model does train when we reduce the model size.
 - Try reducing the size of the model.
+- Tokenization is different across models, make it more general so data generation script has less repetition.
+- Even gpt2 model 774M params leads to OOM, fix that first by potentially moving to bf16 and then move to Llama. Also try using fsdp and fsdp2.
 
 
 ### Dev Notes
