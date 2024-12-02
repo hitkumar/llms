@@ -8,9 +8,8 @@ import torch
 import torch.distributed as dist
 from evaluate import get_validation_loss
 from hellaswag import evaluate_hellaswag
-from model_hparams import HParams
 
-from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed import destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 

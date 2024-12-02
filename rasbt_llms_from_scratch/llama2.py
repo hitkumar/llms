@@ -1,7 +1,19 @@
+import inspect
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from gpt_model import assign, generate, text_to_token_ids, token_ids_to_text
+
+LLAMA2_CONFIG_7B = {
+    "vocab_size": 32000,  # Vocabulary size
+    "context_length": 4096,  # Context length
+    "emb_dim": 4096,  # Embedding dimension
+    "n_heads": 32,  # Number of attention heads
+    "n_layers": 32,  # Number of layers
+    "hidden_dim": 11008,  # NEW: Size of the intermediate dimension in FeedForward
+    "dtype": torch.bfloat16,  # NEW: Lower-precision dtype to reduce memory usage
+}
 
 
 # TODO: Check the dtype calculation here.
@@ -184,12 +196,35 @@ class Llama2Model(nn.Module):
             cfg["emb_dim"], cfg["vocab_size"], bias=False, dtype=cfg["dtype"]
         )
 
-    def forward(self, in_idx):
+    def forward(self, in_idx, targets=None):
         x = self.tok_emb(in_idx)
         x = self.trf_blocks(x)
         x = self.final_norm(x)
         logits = self.out_head(x)
-        return logits
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.shape[-1]), targets.view(-1))
+        return logits, loss
+
+    def configure_optimizers(self, weight_decay, learning_rate, device_type):
+        # Find all parameters that require gradients
+        params_dict = {pn: p for pn, p in self.named_parameters()}
+        params_dict = {pn: p for pn, p in params_dict.items() if p.requires_grad}
+
+        # Now divide params in 2 groups: ones that need weight decay and other that don't
+        decay_params = [p for _, p in params_dict.items() if p.dim() >= 2]
+        nondecay_params = [p for _, p in params_dict.items() if p.dim() < 2]
+        optim_groups = [
+            {"params": decay_params, "weight_decay": weight_decay},
+            {"params": nondecay_params, "weight_decay": 0.0},
+        ]
+
+        fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
+        use_fused = fused_available and device_type == "cuda"
+        optimizer = torch.optim.AdamW(
+            optim_groups, lr=learning_rate, betas=(0.9, 0.95), eps=1e-8, fused=use_fused
+        )
+        return optimizer
 
     def from_pretrained(self, param_config, params):
         self.tok_emb.weight = assign(
@@ -260,15 +295,6 @@ class LLamaTokenizer:
 
 
 if __name__ == "__main__":
-    LLAMA2_CONFIG_7B = {
-        "vocab_size": 32000,  # Vocabulary size
-        "context_length": 4096,  # Context length
-        "emb_dim": 4096,  # Embedding dimension
-        "n_heads": 32,  # Number of attention heads
-        "n_layers": 32,  # Number of layers
-        "hidden_dim": 11008,  # NEW: Size of the intermediate dimension in FeedForward
-        "dtype": torch.bfloat16,  # NEW: Lower-precision dtype to reduce memory usage
-    }
     model = Llama2Model(LLAMA2_CONFIG_7B)
     weights_file = "/home/htkumar/llms/llama-2-7b-chat/consolidated.00.pth"
     weights = torch.load(weights_file, weights_only=True)

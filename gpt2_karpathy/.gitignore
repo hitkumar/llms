@@ -5,3 +5,4 @@ hellaswag/
 logs*/
 *.egg-info/
 data/openwebtext
+data/fineweb_sp

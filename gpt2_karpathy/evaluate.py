@@ -35,7 +35,7 @@ def get_validation_loss(
                 x, y = val_dataloader.next_batch()
                 x, y = x.to(device), y.to(device)
                 with torch.autocast(device_type=device_type, dtype=torch.bfloat16):
-                    logits, loss = model(x, y)
+                    _, loss = model(x, y)
                 loss_total += loss.detach()
 
             loss_total /= val_loss_steps

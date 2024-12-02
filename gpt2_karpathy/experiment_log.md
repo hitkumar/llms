@@ -31,6 +31,12 @@ Classification fine tuning and instruction fine tuning experiments
 |base_gpt2_mistral_moe| 2.8782 | Mistral MOE arch with 8 experts, 2 experts per token|
 |base_gpt_seq_len_2048| 3.0507 | base_gpt2 with 4x learning rate and seq_len=2048, not much change from base_gpt
 
+
+Llama model training
+- LLama2 7b OOM on A100 40gb so far.
+- Try reducing the size of the model.
+
+
 ### Dev Notes
 
 To use modules inside python projects, use `pip install -e .` after adding setup.py
@@ -38,3 +44,4 @@ To use modules inside python projects, use `pip install -e .` after adding setup
 Helpful Commands
 - Distributed training run: torchrun --standalone --nproc_per_node=8 train_gpt2.py
 - simple launch: python3 train_gpt2.py
+- To resolve the module not found error, use export PYTHONPATH="/home/htkumar/llms" for now.

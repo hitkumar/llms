@@ -206,15 +206,12 @@ class GPTModelWithTargets(nn.Module):
         params_dict = {pn: p for pn, p in params_dict.items() if p.requires_grad}
 
         # Now divide params in 2 groups: ones that need weight decay and other that don't
-        decay_params = [p for n, p in params_dict.items() if p.dim() >= 2]
-        nondecay_params = [p for n, p in params_dict.items() if p.dim() < 2]
+        decay_params = [p for _, p in params_dict.items() if p.dim() >= 2]
+        nondecay_params = [p for _, p in params_dict.items() if p.dim() < 2]
         optim_groups = [
             {"params": decay_params, "weight_decay": weight_decay},
             {"params": nondecay_params, "weight_decay": 0.0},
         ]
-
-        num_decay_params = sum(p.numel() for p in decay_params)
-        num_nondecay_params = sum(p.numel() for p in nondecay_params)
 
         fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
         use_fused = fused_available and device_type == "cuda"
@@ -250,7 +247,7 @@ def generate(
     for _ in range(max_new_tokens):
         idx_cond = idx[:, -context_size:]
         with torch.no_grad():
-            logits = model(idx_cond)
+            logits, _ = model(idx_cond)
 
         # shape is (B, V)
         logits = logits[:, -1, :]
