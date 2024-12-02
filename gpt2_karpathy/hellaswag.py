@@ -152,6 +152,7 @@ def evaluate_pretrained(device, log_dir, step):
     checkpoint_file = torch.load(
         os.path.join(log_dir, f"model_{step:05d}.pt"),
         map_location=device,
+        weights_only=True,
     )
     model.load_state_dict(checkpoint_file["model"])
     return evaluate(model, device)
@@ -180,6 +181,7 @@ def evaluate_hellaswag(
         checkpoint_file = torch.load(
             os.path.join(log_dir, f"model_{step:05d}.pt"),
             map_location=device,
+            weights_only=True,
         )
         model.load_state_dict(checkpoint_file["model"])
         model = torch.compile(model)
