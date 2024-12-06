@@ -20,6 +20,10 @@ def total_memory_size(model, input_dtype=torch.float32):
     return model_size_gb
 
 
+def get_model_params(model):
+    return sum(p.numel() for p in model.parameters())
+
+
 def download_file_from_hf_hub(repo_id, filename, local_dir):
     # Before running this, you need to set the HF token using this
     # from huggingface_hub import login
