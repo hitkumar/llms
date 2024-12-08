@@ -29,3 +29,14 @@ def download_file_from_hf_hub(repo_id, filename, local_dir):
     # from huggingface_hub import login
     # login(token=access_token)
     return hf_hub_download(repo_id=repo_id, filename=filename, local_dir=local_dir)
+
+
+def free_pytorch_memory(model=None):
+    import gc
+
+    if model is not None:
+        del model
+    gc.collect()  # run python garbage collector
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
