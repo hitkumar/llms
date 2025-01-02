@@ -1,9 +1,9 @@
 import fire
 import torch
 from modeling_gemma import KVCache, PaliGemmaConfig, PaliGemmaForConditionalGeneration
+from paligemma_utils import load_hf_model
 from PIL import Image
 from processing_paligemma import PaliGemmaProcessor
-from utils import load_hf_model
 
 
 def move_inputs_to_device(model_inputs: dict, device: str):
