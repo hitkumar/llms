@@ -3,7 +3,7 @@ from core.logging_util import init_logger, logger
 
 tokenizer = build_tokenizer(
     "tiktoken",
-    "/home/htkumar/llms/torchtitan/core/datasets/tokenizer/original/tokenizer.model",
+    "./torchtitan/core/datasets/tokenizer/original/tokenizer.model",
 )
 
 print(tokenizer.encode("hello world"))
