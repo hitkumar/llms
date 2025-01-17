@@ -17,6 +17,12 @@ Molmo vs Llama 3.2 vision - https://www.youtube.com/watch?v=06sKEzOvop8
 
 Latent Space talk on Molmo - https://www.youtube.com/watch?v=8BN9CdIYaqc
 
+Distributed Training Berkeley - https://www.youtube.com/watch?v=9TwTKt50ZG8
+Picotron Part 1 and Part 2: https://www.youtube.com/watch?v=qUMPaSWi5HI&list=PL-_armZiJvAnhcRr6yTJ0__f3Oi-LLi9S&index=2
+- Nice intro to tensor parallel.
+Torchtian talk - https://www.youtube.com/watch?v=VYWRjcUqW6w&t=2002s
+FSDP - https://www.youtube.com/watch?v=By_O0k102PY
+From torchtian paper: "here TP shards within nodes and FSDP shards across nodes"
 
 **Papers**
 - Paligemma
@@ -29,9 +35,18 @@ Latent Space talk on Molmo - https://www.youtube.com/watch?v=8BN9CdIYaqc
     - Datasets
     - Evaluation
     - Train with Torchtitan
+
+To Read
+
 - OlMoe
     - https://www.youtube.com/watch?v=3bG7hqTMAaQ
 - Flamingo
+- Deepseek v3
 
 **Code**
 - Paligemma inference code: https://github.com/hitkumar/llms/tree/main/paligemma-pytorch
+- Implement TP and FSDP for llama 3.1 model.
+- is FSDP alone enough to train Llama 3 model on H100?
+
+To go through
+- Picotron
