@@ -33,8 +33,3 @@ class TestDatasetCheckpointing:
             world_size=4,
             rank=0,
         )
-
-
-if __name__ == "__main__":
-    test_dataset_checkpointing = TestDatasetCheckpointing()
-    test_dataset_checkpointing.test_training_resumption()
