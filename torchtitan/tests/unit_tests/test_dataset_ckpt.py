@@ -1,6 +1,6 @@
 import torch
-from core.datasets.hf_datasets import build_hf_data_loader
-from core.datasets.tokenizer import build_tokenizer
+
+from core.datasets import build_hf_data_loader, build_tokenizer
 
 
 class TestDatasetCheckpointing:
