@@ -11,7 +11,8 @@ data
 out
 wandb
 
-core/datasets/**/*.model
+/**/original
+**/.cache/
 
 # temp files
 *.log
