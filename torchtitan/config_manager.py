@@ -61,6 +61,9 @@ class JobConfig:
         assert self.model.flavor
         assert self.model.tokenizer_path
 
+    def to_dict(self):
+        return self.args_dict
+
     def parse_args(self, args_list: list = sys.argv[1:]):
         args = self.parser.parse_args(args_list)
         config_file = getattr(args, "job.config_file", None)
