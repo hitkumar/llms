@@ -65,7 +65,7 @@ def parallelize_llama(
 
         apply_fsdp(
             model,
-            world_mesh[dp_mesh_dim_names],
+            world_mesh[tuple(dp_mesh_dim_names)],
             param_dtype=TORCH_DTYPE_MAP[job_config.training.mixed_precision_param],
             reduce_dtype=TORCH_DTYPE_MAP[job_config.training.mixed_precision_reduce],
             cpu_offload=job_config.training.enable_cpu_offload,
@@ -180,22 +180,22 @@ def apply_compile(model: nn.Module):
 def apply_fsdp(
     model: nn.Module,
     dp_mesh: DeviceMesh,
-    param_type: torch.dtype,
-    reduce_type: torch.dtype,
+    param_dtype: torch.dtype,
+    reduce_dtype: torch.dtype,
     cpu_offload: bool = False,
 ):
     """
     Apply FSDP2 to the model.
     Doesn't support PP yet.
     """
-    mp_policy = MixedPrecisionPolicy(param_dtype=param_type, reduce_dtype=reduce_type)
-    fsdp_config = {"mesh": dp_mesh, "mixed_precision": mp_policy}
+    mp_policy = MixedPrecisionPolicy(param_dtype=param_dtype, reduce_dtype=reduce_dtype)
+    fsdp_config = {"mesh": dp_mesh, "mp_policy": mp_policy}
     if cpu_offload:
         fsdp_config["cpu_offload"] = CPUOffloadPolicy()
 
-    for layer_id, transformer_block in model.layer.items():
+    for layer_id, transformer_block in model.layers.items():
         # Do not reshard after forward for the last transformer block since transformer would prfetch it immediately for backward
-        reshard_after_forward = int(layer_id) < len(model.layer) - 1
+        reshard_after_forward = int(layer_id) < len(model.layers) - 1
         fully_shard(
             transformer_block,
             **fsdp_config,

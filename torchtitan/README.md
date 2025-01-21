@@ -5,3 +5,5 @@ On H100s
 Execute tests
 - cd llms/torchtitan
 - pytest tests/unit_tests/test_dataset_ckpt.py
+
+Try different mesh shapes to see what gives more training throughput.

@@ -1,11 +1,12 @@
 import os
 
 import torch
+import torch.nn.functional as F
 from config_manager import JobConfig
 from core.datasets.tokenizer import build_tokenizer
 from core.datasets import build_hf_data_loader, build_tokenizer
 from core.logging_util import init_logger, logger
-from core.models import model_name_to_tokenizer
+from core.models import model_name_to_cls, model_name_to_tokenizer, models_config
 from core.parallelisms import models_parallelize_fns, ParallelDims
 from torch import distributed as dist
 from torch.distributed.device_mesh import init_device_mesh
@@ -71,9 +72,33 @@ def main(job_config: JobConfig):
         dp_degree,
         dp_rank,
     )
-    it = iter(data_loader)
-    input, target = next(it)
-    logger.info(f"input shape: {input.shape}, target shape is {target.shape}")
+    # it = iter(data_loader)
+    # input, target = next(it)
+    # logger.info(f"input shape: {input.shape}, target shape is {target.shape}")
+
+    # build model
+    model_cls = model_name_to_cls[model_name]
+    model_config = models_config[model_name][job_config.model.flavor]
+    model_config.vocab_size = tokenizer.n_words
+    model_config.max_seq_len = job_config.training.seq_len
+    logger.info(f"Building {model_name} {job_config.model.flavor} with {model_config}")
+
+    with torch.device("meta"):
+        model = model_cls.from_model_args(model_config)
+
+    init_device = device_type
+    buffer_device = None
+
+    def loss_fn(pred, labels):
+        return F.cross_entropy(pred.flatten(0, 1).float(), labels.flatten(0, 1))
+
+    # apply 2D parallelism
+    models_parallelize_fns[model_name](model, world_mesh, parallel_dims, job_config)
+    model.to_empty(device=init_device)
+    with torch.no_grad():
+        model.init_weights(buffer_device=buffer_device)
+    model.train()
+    model_parts = [model]
 
 
 if __name__ == "__main__":

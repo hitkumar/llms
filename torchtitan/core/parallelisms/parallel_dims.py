@@ -43,6 +43,7 @@ class ParallelDims:
             f"Invalid parallel dims: dp_replicate({dp_replicate}) * dp_shard({dp_shard}) * "
             f"cp({cp}) * tp({tp}) * pp({pp}) != WORLD_SIZE({self.world_size})"
         )
+        logger.info(f"Parallel dims: {dp_replicate=}, {dp_shard=}, {cp=}, {tp=}, {pp=}")
 
     def build_mesh(self, device_type):
         dims = []
