@@ -2,7 +2,9 @@
 
 ***CMU Multimodal AI***
 - https://cmu-multicomp-lab.github.io/mmml-course/fall2023/schedule/
-- Lecture 1 and 2 done.
+- Lecture 1 and 2 done
+- Lecture 3
+Talks about unimodal resprsentation for images. CNNs mostly.
 
 Coding Paligemma from scratch - https://www.youtube.com/watch?v=vAmKB7iPkWw&t=2138s
 
