@@ -1,14 +1,20 @@
 import os
+import time
+from re import L
 
 import torch
 import torch.nn.functional as F
+from checkpoint import TrainState
 from config_manager import JobConfig
 from core.datasets.tokenizer import build_tokenizer
+
 from core.datasets import build_hf_data_loader, build_tokenizer
 from core.logging_util import init_logger, logger
 from core.models import model_name_to_cls, model_name_to_tokenizer, models_config
 from core.parallelisms import models_parallelize_fns, ParallelDims
+from optimizer import build_lr_scheduler, build_optimizer
 from torch import distributed as dist
+from torch.distributed._tensor import DTensor
 from torch.distributed.device_mesh import init_device_mesh
 
 # tokenizer = build_tokenizer(
@@ -19,6 +25,7 @@ from torch.distributed.device_mesh import init_device_mesh
 # print(tokenizer.encode("hello world"))
 
 from torch.distributed.elastic.multiprocessing.errors import record
+from torch.distributed.tensor.parallel import loss_parallel
 from utils import device_module, device_type, init_distributed
 
 
@@ -90,6 +97,11 @@ def main(job_config: JobConfig):
     buffer_device = None
 
     def loss_fn(pred, labels):
+        # print(f"dtype of pred is {pred.dtype}, labels dtype is {labels.dtype}")
+        # if isinstance(pred, DTensor):
+        #     print("pred is DTensor")
+        # elif isinstance(labels, DTensor):
+        #     print("labels is DTensor")
         return F.cross_entropy(pred.flatten(0, 1).float(), labels.flatten(0, 1))
 
     # apply 2D parallelism
@@ -99,6 +111,45 @@ def main(job_config: JobConfig):
         model.init_weights(buffer_device=buffer_device)
     model.train()
     model_parts = [model]
+
+    # setup optimizer
+    optimizer = build_optimizer(model_parts[0], job_config)
+    lr_scheduler = build_lr_scheduler(optimizer.optimizer, job_config)
+    print(f"optimizer is {optimizer.optimizer}, lr_scheduler is {lr_scheduler}")
+
+    train_state = TrainState()
+    data_iterator = iter(data_loader)
+
+    while train_state.step < job_config.training.steps:
+        train_state.step += 1
+        # get data
+        data_load_start = time.perf_counter()
+        batch = next(data_iterator)
+        input_ids, labels = batch
+        input_ids = input_ids.to(device_type)
+        labels = labels.to(device_type)
+        optimizer.zero_grad()
+
+        with loss_parallel():
+            pred = model(input_ids)
+            print(
+                f"input_ids shape is {input_ids.shape}, labels shape is {labels.shape}, pred shape is {pred.shape}"
+            )
+            loss = loss_fn(pred, labels)
+            del pred
+            loss.backward()
+
+        # optimizer step
+        optimizer.step()
+        lr_scheduler.step()
+        loss = loss.detach()
+        logger.info(f"train step is {train_state.step}, loss is {loss.item()}")
+
+    if torch.distributed.get_rank() == 0:
+        logger.info("Sleeping 2 seconds for other ranks to complete")
+        time.sleep(2)
+
+    logger.info("Training completed")
 
 
 if __name__ == "__main__":
