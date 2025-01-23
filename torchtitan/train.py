@@ -132,9 +132,9 @@ def main(job_config: JobConfig):
 
         with loss_parallel():
             pred = model(input_ids)
-            print(
-                f"input_ids shape is {input_ids.shape}, labels shape is {labels.shape}, pred shape is {pred.shape}"
-            )
+            # print(
+            #     f"input_ids shape is {input_ids.shape}, labels shape is {labels.shape}, pred shape is {pred.shape}"
+            # )
             loss = loss_fn(pred, labels)
             del pred
             loss.backward()
@@ -142,7 +142,6 @@ def main(job_config: JobConfig):
         # optimizer step
         optimizer.step()
         lr_scheduler.step()
-        loss = loss.detach()
         logger.info(f"train step is {train_state.step}, loss is {loss.item()}")
 
     if torch.distributed.get_rank() == 0:

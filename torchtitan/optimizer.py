@@ -61,7 +61,7 @@ def build_optimizer(model: nn.Module, job_config: JobConfig):
 
 def linear_warmup_linear_decay(warmup_steps: int, decay_steps: int, current_step: int):
     if current_step < warmup_steps:
-        curr_adjustment = float(current_step + 1 / (warmup_steps + 1))
+        curr_adjustment = float((current_step + 1) / (warmup_steps + 1))
     else:
         curr_adjustment = 1 - (current_step - warmup_steps) / decay_steps
 
