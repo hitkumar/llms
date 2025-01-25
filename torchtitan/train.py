@@ -4,6 +4,7 @@ from re import L
 
 import torch
 import torch.nn.functional as F
+import utils
 from checkpoint import TrainState
 from config_manager import JobConfig
 from core.datasets.tokenizer import build_tokenizer
@@ -12,21 +13,15 @@ from core.datasets import build_hf_data_loader, build_tokenizer
 from core.logging_util import init_logger, logger
 from core.models import model_name_to_cls, model_name_to_tokenizer, models_config
 from core.parallelisms import models_parallelize_fns, ParallelDims
+from metrics import build_device_memory_monitor
 from optimizer import build_lr_scheduler, build_optimizer
 from torch import distributed as dist
 from torch.distributed._tensor import DTensor
 from torch.distributed.device_mesh import init_device_mesh
 
-# tokenizer = build_tokenizer(
-#     "tiktoken",
-#     "./torchtitan/core/datasets/tokenizer/original/tokenizer.model",
-# )
-
-# print(tokenizer.encode("hello world"))
-
 from torch.distributed.elastic.multiprocessing.errors import record
 from torch.distributed.tensor.parallel import loss_parallel
-from utils import device_module, device_type, init_distributed
+from utils import device_module, device_type
 
 
 @record
@@ -36,6 +31,10 @@ def main(job_config: JobConfig):
 
     if job_config.job.print_args:
         logger.info(f"Running with args: {job_config.to_dict()}")
+
+    # useful for color printing
+    color = utils.NoColor if job_config.metrics.disable_color_printing else utils.Color
+    gc_handler = utils.GarbageCollection(gc_freq=job_config.training.gc_freq)
 
     world_size = int(os.environ["WORLD_SIZE"])
     parallel_dims = ParallelDims(
@@ -49,11 +48,17 @@ def main(job_config: JobConfig):
     )
     device = torch.device(f"{device_type}:{int(os.environ['LOCAL_RANK'])}")
     device_module.set_device(device)
-    init_distributed(job_config)
+    utils.init_distributed(job_config)
+
+    device_memory_monitor = build_device_memory_monitor()
+    peak_flops = utils.get_peak_flops(device_memory_monitor.device_name)
+    logger.info(f"Peak Flops for this gpu: {peak_flops:.3e}")
 
     # build meshes
     world_mesh = parallel_dims.build_mesh(device_type=device_type)
-    logger.info(f"world mesh is {world_mesh}")
+    logger.info(
+        f"{color.blue}device_module is {device_module}, device_name is {device_memory_monitor.device_name}, world mesh is {world_mesh}{color.reset}"
+    )
 
     if parallel_dims.dp_enabled:
         dp_mesh = world_mesh["dp"]
@@ -122,6 +127,7 @@ def main(job_config: JobConfig):
 
     while train_state.step < job_config.training.steps:
         train_state.step += 1
+        gc_handler.run(train_state.step)
         # get data
         data_load_start = time.perf_counter()
         batch = next(data_iterator)
