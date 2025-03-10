@@ -25,6 +25,16 @@ Picotron Part 1 and Part 2: https://www.youtube.com/watch?v=qUMPaSWi5HI&list=PL-
 Torchtian talk - https://www.youtube.com/watch?v=VYWRjcUqW6w&t=2002s
 FSDP - https://www.youtube.com/watch?v=By_O0k102PY
 From torchtian paper: "here TP shards within nodes and FSDP shards across nodes"
+Ultrascale playbook Talk: https://www.youtube.com/watch?v=CVbbXHFsfP0
+
+Karpathy LLM Talks
+- Deep dive: https://www.youtube.com/watch?v=7xTGNNLPyMI&t=10s
+
+CMU Advanced NLP
+- Agents: https://www.youtube.com/watch?v=4_kbc0_J_U0&list=PLqC25OT8ZpD3WxQ0FwWMGPS_BcWdcKyZy&index=13
+
+Hyung Won Chung Talks (great talks)
+- Teach not incentivize: https://www.youtube.com/watch?v=kYWUEV_e2ss
 
 **Papers**
 - Paligemma
