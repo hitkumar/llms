@@ -32,6 +32,10 @@ Karpathy LLM Talks
 
 CMU Advanced NLP
 - Agents: https://www.youtube.com/watch?v=4_kbc0_J_U0&list=PLqC25OT8ZpD3WxQ0FwWMGPS_BcWdcKyZy&index=13
+- Parallelism and scaling: https://www.youtube.com/watch?v=Mpg1YJfAEH0
+(Same content as Ultra scale playbook from HF)
+- Quantization: https://www.youtube.com/watch?v=YXZZaje76r4&list=PLqC25OT8ZpD3WxQ0FwWMGPS_BcWdcKyZy&index=15
+(some good insights about quantization and inference in this lecture)
 
 Hyung Won Chung Talks (great talks)
 - Teach not incentivize: https://www.youtube.com/watch?v=kYWUEV_e2ss
