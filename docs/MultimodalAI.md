@@ -40,6 +40,15 @@ CMU Advanced NLP
 Hyung Won Chung Talks (great talks)
 - Teach not incentivize: https://www.youtube.com/watch?v=kYWUEV_e2ss
 
+Distillation in Language models:
+https://www.youtube.com/watch?v=O1AR4iL30mg
+(slides: https://drive.google.com/file/d/1xMohjQcTmQuUd_OiZ3hB1r47WB1WM3Am/view)
+
+CS 224n (new)
+
+- Lecture 12 (Efficient Training): https://www.youtube.com/watch?v=UVX7SYGCKkA&list=PLoROMvodv4rOaMFbaqxPDoLWjDaRAdP9D&index=13
+(Decent lecture)
+
 **Papers**
 - Paligemma
 - Paligemma 2
