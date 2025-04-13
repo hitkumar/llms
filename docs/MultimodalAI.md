@@ -36,6 +36,8 @@ CMU Advanced NLP
 (Same content as Ultra scale playbook from HF)
 - Quantization: https://www.youtube.com/watch?v=YXZZaje76r4&list=PLqC25OT8ZpD3WxQ0FwWMGPS_BcWdcKyZy&index=15
 (some good insights about quantization and inference in this lecture)
+- Multimodal AI (1): https://www.youtube.com/watch?v=5uI5WOpq8LQ
+(Good overview with ViT, Clip and Llava)
 
 Hyung Won Chung Talks (great talks)
 - Teach not incentivize: https://www.youtube.com/watch?v=kYWUEV_e2ss
