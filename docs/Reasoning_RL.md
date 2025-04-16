@@ -16,8 +16,11 @@ https://www.youtube.com/watch?v=amrJDwMUFNs
 
 CS 285 UC berkeley: https://rail.eecs.berkeley.edu/deeprlcourse/
 - Finished lecture 2 and 4
-- Lecture 5 on policy gradients first 2 parts done.
+- Lecture 5 on policy gradients done.
 - Math is still not srtting in fully, might need to go through it again.
+- Kevin Murphy's book might be useful to go through.
+- Need see code as well.
+- Emma's stanford lectures could be another useful resource.
 
 One way to look at policy gradients loss is
 pg_loss = -advantages * ratio of policy_new / policy_old
