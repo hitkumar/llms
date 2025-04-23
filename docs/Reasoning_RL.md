@@ -2,10 +2,22 @@
 - Deepseek-R1: https://arxiv.org/pdf/2501.12948
 Very nice paper, distillation is a very neat idea.
 
-TODOs
-- [ ] Read https://www.interconnects.ai/p/papers-im-reading-base-model-rl-grpo with more details of other papers
+**Articles**
+- https://magazine.sebastianraschka.com/p/the-state-of-llm-reasoning-model-training
+   - Introduces RLHF and motivates RLVR
+   - Goes into some recent papers like below post.
+   - Best to play with these in code.
+- https://www.interconnects.ai/p/papers-im-reading-base-model-rl-grpo
+
+**Code**
+- try in Torchtune
+- TinyZero: https://github.com/Jiayi-Pan/TinyZero
+- nano aha moment: https://github.com/McGill-NLP/nano-aha-moment
+
 
 **Videos**
+
+vLLM intro: https://www.youtube.com/watch?v=9ih0EmcXRHE&t=30s
 
 * Deepseek-R1
     * Umar Jamil: https://www.youtube.com/watch?v=XMnxKGVnEUc
@@ -19,7 +31,7 @@ CS 285 UC berkeley: https://rail.eecs.berkeley.edu/deeprlcourse/
 - Lecture 5 on policy gradients done.
 - Math is still not srtting in fully, might need to go through it again.
 - Kevin Murphy's book might be useful to go through.
-- Need see code as well.
+- Need see code as well (TorchRL could be a good starting point)
 - Emma's stanford lectures could be another useful resource.
 
 One way to look at policy gradients loss is

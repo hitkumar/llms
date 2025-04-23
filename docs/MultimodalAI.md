@@ -38,6 +38,17 @@ CMU Advanced NLP
 (some good insights about quantization and inference in this lecture)
 - Multimodal AI (1): https://www.youtube.com/watch?v=5uI5WOpq8LQ
 (Good overview with ViT, Clip and Llava)
+- Multimodal AI (2): https://www.youtube.com/watch?v=VismiXpCs_Y
+    - Good overview of VQ-GAN, Vq-VAE and some interesting diffusion models references
+    - Presents an interesting way of doing image tokenization compared to CLIP like models
+    - Code Vq-vae and look at Chameleon paper.
+- Long context models: https://www.youtube.com/watch?v=7kSPKKoP718&t=366s
+    - Motivates the problem well
+    - Training is a challenge with these models due to long seq lenght - memory and compute requirements are high.
+    - We extrapolate pos embeddings to handle this during post training.
+    - There are some transformer arch variations that can help with this.
+    - SSMs are a good way to mitigate this as they can be parallelized during training like CNNs and during inference can be thought of like RNNs.
+
 
 Hyung Won Chung Talks (great talks)
 - Teach not incentivize: https://www.youtube.com/watch?v=kYWUEV_e2ss
