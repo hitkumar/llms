@@ -17,6 +17,13 @@ Very nice paper, distillation is a very neat idea.
 
 **Videos**
 
+Nano-aha moment Videos
+- Part 1: https://www.youtube.com/watch?v=ZMO5tv30ri8&t=7503s
+- Part 2: https://www.youtube.com/watch?v=dxhCyhc_bcQ
+
+Small RL models: https://www.youtube.com/watch?v=mFg-2IHSrD4&t=16s
+- Key takeaway is to improve performance of small models in pytorch using torch.compile and enabling cudagraphs.
+
 vLLM intro: https://www.youtube.com/watch?v=9ih0EmcXRHE&t=30s
 
 * Deepseek-R1
